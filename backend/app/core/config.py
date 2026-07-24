@@ -20,8 +20,18 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("TIMEZONE", "TZ"),
     )
 
-    admin_username: str = "admin"
-    admin_password: str = "change-me-now"
+    bootstrap_admin_email: str = Field(
+        default="admin@example.com",
+        validation_alias=AliasChoices("ADMIN_EMAIL", "ADMIN_USERNAME"),
+    )
+    bootstrap_admin_password: str = Field(
+        default="change-me-now",
+        validation_alias=AliasChoices("ADMIN_PASSWORD"),
+    )
+    bootstrap_admin_display_name: str = Field(
+        default="系統管理員",
+        validation_alias=AliasChoices("ADMIN_DISPLAY_NAME"),
+    )
     jwt_secret: str = "replace-with-a-long-random-secret"
     jwt_expire_minutes: int = 1440
 
@@ -60,6 +70,13 @@ class Settings(BaseSettings):
     @property
     def telegram_configured(self) -> bool:
         return bool(self.telegram_bot_token.strip() and self.telegram_chat_id.strip())
+
+    @property
+    def normalized_bootstrap_admin_email(self) -> str:
+        email = self.bootstrap_admin_email.strip().lower()
+        if "@" not in email:
+            return f"{email}@local.invalid"
+        return email
 
     def ensure_local_data_directory(self) -> None:
         sqlite_prefix = "sqlite:///"
