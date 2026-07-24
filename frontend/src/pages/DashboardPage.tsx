@@ -7,7 +7,11 @@ import { StatusBadge } from '../components/StatusBadge';
 import type { CrawlRun, DashboardStats } from '../types';
 import { formatDateTime, getErrorMessage } from '../utils';
 
-export function DashboardPage() {
+interface DashboardPageProps {
+  isAdmin: boolean;
+}
+
+export function DashboardPage({ isAdmin }: DashboardPageProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -57,20 +61,28 @@ export function DashboardPage() {
     <div className="p-dashboard">
       <PageHeader
         eyebrow="OVERVIEW"
-        title="監控總覽"
-        description="查看規則、排程與最近一次爬取狀態。"
+        title="個人監控總覽"
+        description="查看你的規則、命中數量與系統排程狀態。"
         actions={
-          <button className="c-button c-button--primary" disabled={running} onClick={handleRun}>
-            {running ? '爬取中…' : '立即爬取'}
-          </button>
+          isAdmin ? (
+            <button className="c-button c-button--primary" disabled={running} onClick={handleRun}>
+              {running ? '爬取中…' : '立即爬取'}
+            </button>
+          ) : undefined
         }
       />
 
       {feedback && <Feedback type={feedback.type} message={feedback.message} />}
-      {!stats?.telegram_configured && (
+      {isAdmin && !stats?.telegram_configured && (
         <Feedback
           type="info"
-          message="Telegram 尚未設定。請先在 .env 填入 TELEGRAM_BOT_TOKEN 與 TELEGRAM_CHAT_ID。"
+          message="管理員 Telegram 尚未設定。請先在服務環境變數填入 Bot Token 與 Chat ID。"
+        />
+      )}
+      {!isAdmin && (
+        <Feedback
+          type="info"
+          message="目前已完成個人帳號與規則隔離；PWA 推播通知會在下一階段加入。"
         />
       )}
 
@@ -78,17 +90,17 @@ export function DashboardPage() {
         <article className="c-stat-card">
           <span className="c-stat-card__label">啟用規則</span>
           <strong className="c-stat-card__value">{stats?.enabled_rules ?? 0}</strong>
-          <small className="c-stat-card__meta">共 {stats?.total_rules ?? 0} 條規則</small>
+          <small className="c-stat-card__meta">共 {stats?.total_rules ?? 0} 條個人規則</small>
         </article>
         <article className="c-stat-card">
-          <span className="c-stat-card__label">已掃描文章</span>
+          <span className="c-stat-card__label">命中文章</span>
           <strong className="c-stat-card__value">{stats?.seen_articles ?? 0}</strong>
-          <small className="c-stat-card__meta">以文章網址永久去重</small>
+          <small className="c-stat-card__meta">同一篇文章只計算一次</small>
         </article>
         <article className="c-stat-card">
-          <span className="c-stat-card__label">累計命中</span>
+          <span className="c-stat-card__label">規則命中</span>
           <strong className="c-stat-card__value">{stats?.total_matches ?? 0}</strong>
-          <small className="c-stat-card__meta">同篇可命中多條規則</small>
+          <small className="c-stat-card__meta">同篇文章可命中多條規則</small>
         </article>
         <article className="c-stat-card">
           <span className="c-stat-card__label">下次排程</span>
@@ -105,7 +117,7 @@ export function DashboardPage() {
         <div className="c-card__header">
           <div>
             <span className="c-card__eyebrow">LAST RUN</span>
-            <h2 className="c-card__title">最近一次爬取</h2>
+            <h2 className="c-card__title">系統最近一次爬取</h2>
           </div>
           {stats?.last_run && <StatusBadge status={stats.last_run.status} />}
         </div>
@@ -133,10 +145,10 @@ export function DashboardPage() {
               <dd>{stats.last_run.matches_count}</dd>
             </div>
             <div className="c-detail-grid__item">
-              <dt>通知</dt>
+              <dt>管理員通知</dt>
               <dd>{stats.last_run.notification_sent ? '已傳送' : '未傳送'}</dd>
             </div>
-            {stats.last_run.error_message && (
+            {isAdmin && stats.last_run.error_message && (
               <div className="c-detail-grid__item c-detail-grid__item--full">
                 <dt>訊息</dt>
                 <dd>{stats.last_run.error_message}</dd>
