@@ -11,6 +11,7 @@ interface AppShellProps extends PropsWithChildren {
 const navigationItems = [
   { to: '/', label: '總覽', icon: '◫', end: true, adminOnly: false },
   { to: '/rules', label: '通知規則', icon: '⌕', adminOnly: false },
+  { to: '/matches', label: '命中紀錄', icon: '✓', adminOnly: false },
   { to: '/runs', label: '爬取紀錄', icon: '↻', adminOnly: true },
   { to: '/settings', label: '系統設定', icon: '⚙', adminOnly: true },
 ];
