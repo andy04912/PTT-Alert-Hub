@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PTT Alert Hub">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="30" x2="470" y2="490" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7f81fb"/>
+      <stop offset="1" stop-color="#484ac7"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#111827"/>
+  <circle cx="420" cy="80" r="150" fill="#7c7ef8" opacity=".18"/>
+  <circle cx="62" cy="462" r="158" fill="#2cb67d" opacity=".12"/>
+  <rect x="112" y="112" width="288" height="288" rx="84" fill="url(#bg)"/>
+  <path d="M202 168h68c60 0 98 32 98 85 0 54-39 87-101 87h-22v52h-43V168Zm43 39v94h23c35 0 56-16 56-48 0-31-20-46-55-46h-24Z" fill="white"/>
+  <circle cx="360" cy="158" r="21" fill="#3cd8a0"/>
+</svg>
