@@ -2,6 +2,7 @@ import type {
   ActionResponse,
   AppSetting,
   AppSettingPayload,
+  ArticleMatch,
   BoardCategory,
   BoardOption,
   BoardValidationResponse,
@@ -112,6 +113,8 @@ export const api = {
     }),
   validateBoard: (board: string) =>
     request<BoardValidationResponse>(`/rules/validate/${encodeURIComponent(board)}`),
+
+  getMatches: (limit = 100) => request<ArticleMatch[]>(`/matches?limit=${limit}`),
 
   getPopularBoards: (limit = 50) =>
     request<BoardOption[]>(`/boards/popular?limit=${limit}`),
