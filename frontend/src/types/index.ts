@@ -23,6 +23,19 @@ export interface Rule {
 
 export type RulePayload = Omit<Rule, 'id' | 'created_at' | 'updated_at'>;
 
+export interface ArticleMatch {
+  id: number;
+  rule_id: number;
+  rule_name: string;
+  board: string;
+  title: string;
+  author: string;
+  url: string;
+  published_at: string | null;
+  matched_at: string;
+  notified_at: string | null;
+}
+
 export interface CrawlRun {
   id: number;
   trigger: string;
