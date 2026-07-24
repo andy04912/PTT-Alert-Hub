@@ -18,7 +18,10 @@ function isStandaloneMode(): boolean {
 }
 
 function isIosDevice(): boolean {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return (
+    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
 }
 
 export function PwaManager() {
@@ -68,8 +71,10 @@ export function PwaManager() {
       return undefined;
     }
 
+    let disposed = false;
     let refreshing = false;
     let updateTimer: number | undefined;
+    let checkForUpdate: (() => void) | undefined;
 
     const handleControllerChange = () => {
       if (refreshing) {
@@ -84,6 +89,10 @@ export function PwaManager() {
     void navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then((registration) => {
+        if (disposed) {
+          return;
+        }
+
         if (registration.waiting) {
           setUpdateRegistration(registration);
         }
@@ -95,13 +104,17 @@ export function PwaManager() {
           }
 
           installingWorker.addEventListener('statechange', () => {
-            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            if (
+              !disposed &&
+              installingWorker.state === 'installed' &&
+              navigator.serviceWorker.controller
+            ) {
               setUpdateRegistration(registration);
             }
           });
         });
 
-        const checkForUpdate = () => {
+        checkForUpdate = () => {
           if (document.visibilityState === 'visible') {
             void registration.update().catch(() => undefined);
           }
@@ -115,7 +128,11 @@ export function PwaManager() {
       });
 
     return () => {
+      disposed = true;
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      if (checkForUpdate) {
+        document.removeEventListener('visibilitychange', checkForUpdate);
+      }
       if (updateTimer !== undefined) {
         window.clearInterval(updateTimer);
       }
@@ -170,7 +187,11 @@ export function PwaManager() {
               <span>套用更新後會重新載入頁面，不會清除登入狀態。</span>
             </div>
             <div className="c-pwa-banner__actions">
-              <button className="c-button c-button--primary c-button--small" type="button" onClick={applyUpdate}>
+              <button
+                className="c-button c-button--primary c-button--small"
+                type="button"
+                onClick={applyUpdate}
+              >
                 立即更新
               </button>
               <button
@@ -215,7 +236,11 @@ export function PwaManager() {
       </div>
 
       {showIosGuide && (
-        <div className="c-pwa-dialog-backdrop" role="presentation" onMouseDown={() => setShowIosGuide(false)}>
+        <div
+          className="c-pwa-dialog-backdrop"
+          role="presentation"
+          onMouseDown={() => setShowIosGuide(false)}
+        >
           <section
             className="c-pwa-dialog"
             role="dialog"
