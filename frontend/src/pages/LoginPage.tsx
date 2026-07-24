@@ -1,15 +1,17 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 
 import { api } from '../api/client';
 import { Feedback } from '../components/Feedback';
+import type { LoginResponse } from '../types';
 import { getErrorMessage } from '../utils';
 
 interface LoginPageProps {
-  onLogin: (token: string) => void;
+  onAuthenticated: (response: LoginResponse) => void;
 }
 
-export function LoginPage({ onLogin }: LoginPageProps) {
-  const [username, setUsername] = useState('admin');
+export function LoginPage({ onAuthenticated }: LoginPageProps) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,8 +22,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setError('');
 
     try {
-      const response = await api.login(username, password);
-      onLogin(response.access_token);
+      onAuthenticated(await api.login(email, password));
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -41,27 +42,28 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         <div className="p-login__intro">
-          <span className="p-login__eyebrow">ADMIN CONSOLE</span>
-          <h1 className="p-login__title">登入監控後台</h1>
+          <span className="p-login__eyebrow">PERSONAL ALERTS</span>
+          <h1 className="p-login__title">登入你的監控中心</h1>
           <p className="p-login__description">
-            設定看板、標題關鍵字與作者帳號，系統會定時爬取並合併推送命中文章。
+            每個帳號都有獨立的看板規則與命中紀錄，不會看到其他使用者的資料。
           </p>
         </div>
 
         <form className="c-form" onSubmit={handleSubmit}>
           {error && <Feedback type="error" message={error} />}
           <label className="c-field">
-            <span className="c-field__label">管理員帳號</span>
+            <span className="c-field__label">Email</span>
             <input
               className="c-input"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              autoComplete="username"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
               required
             />
           </label>
           <label className="c-field">
-            <span className="c-field__label">管理員密碼</span>
+            <span className="c-field__label">密碼</span>
             <input
               className="c-input"
               type="password"
@@ -74,6 +76,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <button className="c-button c-button--primary c-button--full" disabled={loading}>
             {loading ? '登入中…' : '登入'}
           </button>
+          <p className="p-login__description">
+            還沒有帳號？ <Link to="/register">建立個人帳號</Link>
+          </p>
         </form>
       </section>
 
@@ -81,10 +86,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <div className="p-login__visual-card p-login__visual-card--first">
           <span>Tech_Job</span>
           <strong>標題包含「徵才」</strong>
-          <em>已啟用</em>
+          <em>個人規則</em>
         </div>
         <div className="p-login__visual-card p-login__visual-card--second">
-          <span>Taichung</span>
+          <span>TaichungBun</span>
           <strong>作者等於 andy123</strong>
           <em>等待新文章</em>
         </div>
