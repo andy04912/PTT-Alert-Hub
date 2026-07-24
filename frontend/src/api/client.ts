@@ -10,6 +10,7 @@ import type {
   LoginResponse,
   Rule,
   RulePayload,
+  User,
 } from '../types';
 
 const API_BASE_URL = '/api';
@@ -54,7 +55,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && token) {
     clearStoredToken();
     window.dispatchEvent(new CustomEvent('auth-expired'));
   }
@@ -80,11 +81,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  login: (username: string, password: string) =>
+  login: (email: string, password: string) =>
     request<LoginResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
     }),
+  register: (email: string, displayName: string, password: string) =>
+    request<LoginResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, display_name: displayName, password }),
+    }),
+  getMe: () => request<User>('/auth/me'),
 
   getDashboard: () => request<DashboardStats>('/dashboard'),
 
