@@ -15,6 +15,7 @@ from app.models import (
     CrawlRunStatus,
     Rule,
     SeenArticle,
+    User,
     utc_now,
 )
 from app.services.app_settings import get_or_create_app_settings
@@ -138,6 +139,7 @@ class CrawlService:
 
                     db.add(
                         ArticleMatch(
+                            user_id=rule.user_id,
                             run_id=run.id,
                             rule_id=rule.id,
                             article_id=seen_article.id,
@@ -219,9 +221,12 @@ class CrawlService:
             select(ArticleMatch, Rule, SeenArticle)
             .join(Rule, Rule.id == ArticleMatch.rule_id)
             .join(SeenArticle, SeenArticle.id == ArticleMatch.article_id)
+            .join(User, User.id == ArticleMatch.user_id)
             .where(
                 ArticleMatch.notified_at.is_(None),
                 Rule.enabled.is_(True),
+                User.is_admin.is_(True),
+                User.is_active.is_(True),
             )
             .order_by(ArticleMatch.matched_at.asc(), ArticleMatch.id.asc())
         ).all()
