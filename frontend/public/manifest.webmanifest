@@ -1,0 +1,46 @@
+{
+  "id": "/",
+  "name": "PTT Alert Hub",
+  "short_name": "PTT Alert",
+  "description": "建立個人 PTT 文章監控規則，集中查看符合條件的新文章。",
+  "lang": "zh-TW",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "通知規則",
+      "short_name": "規則",
+      "description": "管理個人的 PTT 監控規則",
+      "url": "/rules?source=shortcut",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "命中紀錄",
+      "short_name": "命中",
+      "description": "查看符合個人規則的新文章",
+      "url": "/matches?source=shortcut",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
