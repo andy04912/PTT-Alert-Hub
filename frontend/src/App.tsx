@@ -6,6 +6,7 @@ import { AppShell } from './components/AppShell';
 import { LoadingState } from './components/Feedback';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
+import { MatchesPage } from './pages/MatchesPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { RulesPage } from './pages/RulesPage';
 import { RunsPage } from './pages/RunsPage';
@@ -57,6 +58,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<DashboardPage isAdmin={user.is_admin} />} />
             <Route path="/rules" element={<RulesPage />} />
+            <Route path="/matches" element={<MatchesPage />} />
             {user.is_admin && <Route path="/runs" element={<RunsPage />} />}
             {user.is_admin && <Route path="/settings" element={<SettingsPage />} />}
             <Route path="*" element={<Navigate to="/" replace />} />
