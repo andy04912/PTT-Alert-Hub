@@ -1,12 +1,15 @@
 const CACHE_PREFIX = 'ptt-alert-hub-shell';
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 const APP_SHELL = [
   '/',
   '/offline.html',
   '/manifest.webmanifest',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-maskable-512.png',
+  '/icons/apple-touch-icon.png',
   '/icons/icon.svg',
-  '/icons/icon-maskable.svg',
 ];
 
 self.addEventListener('install', (event) => {
