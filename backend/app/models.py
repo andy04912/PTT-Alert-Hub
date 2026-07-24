@@ -25,10 +25,27 @@ class CrawlRunStatus(str, enum.Enum):
     SKIPPED = "skipped"
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(80))
+    password_hash: Mapped[str] = mapped_column(String(500))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
+
+
 class Rule(Base):
     __tablename__ = "rules"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(100))
     board: Mapped[str] = mapped_column(String(60), index=True)
     match_type: Mapped[RuleMatchType] = mapped_column(Enum(RuleMatchType))
@@ -105,6 +122,10 @@ class ArticleMatch(Base):
     __table_args__ = (UniqueConstraint("rule_id", "article_id", name="uq_rule_article"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
     run_id: Mapped[int] = mapped_column(ForeignKey("crawl_runs.id", ondelete="CASCADE"))
     rule_id: Mapped[int] = mapped_column(ForeignKey("rules.id", ondelete="CASCADE"))
     article_id: Mapped[int] = mapped_column(ForeignKey("seen_articles.id", ondelete="CASCADE"))
