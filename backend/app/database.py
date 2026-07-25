@@ -44,10 +44,20 @@ def _ensure_account_columns(connection: Connection) -> None:
         match_columns = {column["name"] for column in inspector.get_columns("article_matches")}
         if "user_id" not in match_columns:
             connection.execute(text("ALTER TABLE article_matches ADD COLUMN user_id INTEGER"))
+        if "push_notified_at" not in match_columns:
+            connection.execute(
+                text("ALTER TABLE article_matches ADD COLUMN push_notified_at DATETIME")
+            )
         connection.execute(
             text(
                 "CREATE INDEX IF NOT EXISTS ix_article_matches_user_id "
                 "ON article_matches (user_id)"
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_article_matches_push_notified_at "
+                "ON article_matches (push_notified_at)"
             )
         )
 
@@ -62,7 +72,6 @@ def initialize_database() -> None:
         with engine.begin() as connection:
             _initialize_schema(connection)
         return
-
     advisory_lock_key = 781_046_213
     with engine.connect() as connection:
         connection.execute(
