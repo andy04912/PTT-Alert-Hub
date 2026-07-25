@@ -45,8 +45,16 @@ def _ensure_account_columns(connection: Connection) -> None:
         if "user_id" not in match_columns:
             connection.execute(text("ALTER TABLE article_matches ADD COLUMN user_id INTEGER"))
         if "push_notified_at" not in match_columns:
+            timestamp_type = (
+                "TIMESTAMP WITHOUT TIME ZONE"
+                if connection.dialect.name == "postgresql"
+                else "DATETIME"
+            )
             connection.execute(
-                text("ALTER TABLE article_matches ADD COLUMN push_notified_at DATETIME")
+                text(
+                    "ALTER TABLE article_matches "
+                    f"ADD COLUMN push_notified_at {timestamp_type}"
+                )
             )
         connection.execute(
             text(
