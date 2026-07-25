@@ -4,9 +4,11 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { api, clearStoredToken, getStoredToken, setStoredToken } from './api/client';
 import { AppShell } from './components/AppShell';
 import { LoadingState } from './components/Feedback';
+import { PwaManager } from './components/PwaManager';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { MatchesPage } from './pages/MatchesPage';
+import { PushPage } from './pages/PushPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { RulesPage } from './pages/RulesPage';
 import { RunsPage } from './pages/RunsPage';
@@ -47,18 +49,18 @@ export default function App() {
     setUser(null);
   };
 
-  if (loading) {
-    return <LoadingState />;
-  }
+  if (loading) return <LoadingState />;
 
   return (
     <BrowserRouter>
+      <PwaManager />
       {user ? (
         <AppShell user={user} onLogout={handleLogout}>
           <Routes>
             <Route path="/" element={<DashboardPage isAdmin={user.is_admin} />} />
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/matches" element={<MatchesPage />} />
+            <Route path="/push" element={<PushPage />} />
             {user.is_admin && <Route path="/runs" element={<RunsPage />} />}
             {user.is_admin && <Route path="/settings" element={<SettingsPage />} />}
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -67,10 +69,7 @@ export default function App() {
       ) : (
         <Routes>
           <Route path="/login" element={<LoginPage onAuthenticated={handleAuthenticated} />} />
-          <Route
-            path="/register"
-            element={<RegisterPage onAuthenticated={handleAuthenticated} />}
-          />
+          <Route path="/register" element={<RegisterPage onAuthenticated={handleAuthenticated} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       )}
