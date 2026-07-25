@@ -4,7 +4,7 @@ import re
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urljoin
 
 import httpx
@@ -55,7 +55,11 @@ class PttCrawler:
                     base_url=self.settings.ptt_base_url,
                 )
 
-                if page_index == 0 and not page_articles and not self._looks_like_board(response.text, board):
+                if (
+                    page_index == 0
+                    and not page_articles
+                    and not self._looks_like_board(response.text, board)
+                ):
                     raise PttCrawlerError(f"找不到 PTT 看板：{board}")
 
                 for article in page_articles:
@@ -114,7 +118,7 @@ class PttCrawler:
                     self.__class__._last_request_at = time.monotonic()
                     if attempt == 2:
                         raise PttCrawlerError(f"讀取 PTT 失敗：{error}") from error
-                    time.sleep(2 ** attempt)
+                    time.sleep(2**attempt)
                     continue
 
                 self.__class__._last_request_at = time.monotonic()
@@ -133,9 +137,9 @@ class PttCrawler:
 
             retry_after = response.headers.get("Retry-After")
             try:
-                backoff_seconds = float(retry_after) if retry_after else float(2 ** attempt)
+                backoff_seconds = float(retry_after) if retry_after else float(2**attempt)
             except ValueError:
-                backoff_seconds = float(2 ** attempt)
+                backoff_seconds = float(2**attempt)
             time.sleep(max(backoff_seconds, self.settings.ptt_request_delay_seconds))
 
         raise PttCrawlerError("讀取 PTT 失敗")
@@ -196,6 +200,6 @@ class PttCrawler:
         if not match:
             return None
         try:
-            return datetime.fromtimestamp(int(match.group(1)), tz=timezone.utc).replace(tzinfo=None)
+            return datetime.fromtimestamp(int(match.group(1)), tz=UTC).replace(tzinfo=None)
         except (OverflowError, OSError, ValueError):
             return None
