@@ -44,10 +44,23 @@ def _ensure_account_columns(connection: Connection) -> None:
         match_columns = {column["name"] for column in inspector.get_columns("article_matches")}
         if "user_id" not in match_columns:
             connection.execute(text("ALTER TABLE article_matches ADD COLUMN user_id INTEGER"))
+        if "push_notified_at" not in match_columns:
+            timestamp_type = (
+                "TIMESTAMP WITHOUT TIME ZONE"
+                if connection.dialect.name == "postgresql"
+                else "DATETIME"
+            )
+            connection.execute(
+                text(
+                    "ALTER TABLE article_matches "
+                    f"ADD COLUMN push_notified_at {timestamp_type}"
+                )
+            )
+        connection.execute(text("CREATE INDEX IF NOT EXISTS ix_article_matches_user_id ON article_matches (user_id)"))
         connection.execute(
             text(
-                "CREATE INDEX IF NOT EXISTS ix_article_matches_user_id "
-                "ON article_matches (user_id)"
+                "CREATE INDEX IF NOT EXISTS ix_article_matches_push_notified_at "
+                "ON article_matches (push_notified_at)"
             )
         )
 
@@ -65,10 +78,7 @@ def initialize_database() -> None:
 
     advisory_lock_key = 781_046_213
     with engine.connect() as connection:
-        connection.execute(
-            text("SELECT pg_advisory_lock(:lock_key)"),
-            {"lock_key": advisory_lock_key},
-        )
+        connection.execute(text("SELECT pg_advisory_lock(:lock_key)"), {"lock_key": advisory_lock_key})
         try:
             _initialize_schema(connection)
             connection.commit()
@@ -76,10 +86,7 @@ def initialize_database() -> None:
             connection.rollback()
             raise
         finally:
-            connection.execute(
-                text("SELECT pg_advisory_unlock(:lock_key)"),
-                {"lock_key": advisory_lock_key},
-            )
+            connection.execute(text("SELECT pg_advisory_unlock(:lock_key)"), {"lock_key": advisory_lock_key})
             connection.commit()
 
 

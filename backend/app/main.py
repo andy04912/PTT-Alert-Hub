@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, boards, crawl, dashboard, matches, rules, settings
+from app.api import auth, boards, crawl, dashboard, matches, push, rules, settings
 from app.core.config import get_settings
 from app.database import SessionLocal, initialize_database
 from app.services.account_service import ensure_bootstrap_admin
@@ -26,7 +26,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(
     title=app_settings.app_name,
-    version="0.5.0",
+    version="0.6.0",
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -41,6 +41,7 @@ app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(rules.router)
 app.include_router(matches.router)
+app.include_router(push.router)
 app.include_router(boards.router)
 app.include_router(settings.router)
 app.include_router(crawl.router)

@@ -42,10 +42,7 @@ class Rule(Base):
     __tablename__ = "rules"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        index=True,
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(100))
     board: Mapped[str] = mapped_column(String(60), index=True)
     match_type: Mapped[RuleMatchType] = mapped_column(Enum(RuleMatchType))
@@ -122,12 +119,28 @@ class ArticleMatch(Base):
     __table_args__ = (UniqueConstraint("rule_id", "article_id", name="uq_rule_article"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        index=True,
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     run_id: Mapped[int] = mapped_column(ForeignKey("crawl_runs.id", ondelete="CASCADE"))
     rule_id: Mapped[int] = mapped_column(ForeignKey("rules.id", ondelete="CASCADE"))
     article_id: Mapped[int] = mapped_column(ForeignKey("seen_articles.id", ondelete="CASCADE"))
     matched_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    push_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    endpoint: Mapped[str] = mapped_column(String(1200), unique=True, index=True)
+    p256dh: Mapped[str] = mapped_column(String(300))
+    auth: Mapped[str] = mapped_column(String(200))
+    device_name: Mapped[str] = mapped_column(String(100), default="瀏覽器裝置")
+    user_agent: Mapped[str] = mapped_column(String(600), default="")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    failure_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_failure_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)

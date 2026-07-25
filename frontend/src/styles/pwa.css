@@ -1,0 +1,15 @@
+.l-app-shell__content{grid-template-rows:calc(64px + env(safe-area-inset-top)) minmax(0,1fr)}
+.l-app-shell__sidebar{padding-top:calc(28px + env(safe-area-inset-top));padding-bottom:calc(20px + env(safe-area-inset-bottom));padding-left:calc(20px + env(safe-area-inset-left))}
+.l-app-shell__topbar{padding-top:env(safe-area-inset-top);padding-right:calc(32px + env(safe-area-inset-right))}
+.l-app-shell__main{padding-right:calc(34px + env(safe-area-inset-right));padding-bottom:calc(34px + env(safe-area-inset-bottom))}
+.c-pwa-stack{position:fixed;z-index:80;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));display:flex;width:min(430px,calc(100vw - 36px));flex-direction:column;gap:10px;pointer-events:none}
+.c-pwa-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;color:#fff;background:rgba(17,24,39,.96);box-shadow:0 22px 60px rgba(17,24,39,.28);backdrop-filter:blur(18px);pointer-events:auto}
+.c-pwa-banner--offline{color:#6f4d16;border-color:#ecd5a9;background:rgba(255,248,232,.97)}
+.c-pwa-banner--update{background:rgba(44,45,115,.97)}
+.c-pwa-banner strong,.c-pwa-banner span{display:block}.c-pwa-banner strong{font-size:13px}.c-pwa-banner span{margin-top:4px;color:#bdc6d7;font-size:11px;line-height:1.55}.c-pwa-banner--offline span{color:#856a3f}
+.c-pwa-banner__actions{display:flex;flex:0 0 auto;gap:7px}
+.c-pwa-dialog-backdrop{position:fixed;z-index:90;display:grid;inset:0;padding:max(22px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));place-items:center;background:rgba(8,13,24,.68);backdrop-filter:blur(10px)}
+.c-pwa-dialog{width:min(100%,460px);max-height:100%;padding:28px;overflow-y:auto;border:1px solid var(--color-border);border-radius:22px;background:#fff;box-shadow:0 34px 90px rgba(0,0,0,.3)}
+.c-pwa-dialog__icon{display:grid;width:54px;height:54px;margin-bottom:24px;place-items:center;border-radius:16px;color:#fff;background:linear-gradient(135deg,#7c7ef8,#5557d9);font-size:25px;font-weight:900}
+.c-pwa-dialog__eyebrow{color:var(--color-primary);font-size:10px;font-weight:900;letter-spacing:.15em}.c-pwa-dialog h2{margin:8px 0 16px;font-size:28px}.c-pwa-dialog ol{margin:0 0 24px;padding-left:22px;color:var(--color-text-muted);font-size:13px;line-height:1.75}
+@media(max-width:600px){.c-pwa-stack{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:calc(100vw - 24px)}.c-pwa-banner{align-items:stretch;flex-direction:column}.c-pwa-banner__actions .c-button{flex:1}}

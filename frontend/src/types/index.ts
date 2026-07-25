@@ -86,6 +86,41 @@ export interface ActionResponse {
   message: string;
 }
 
+export interface PushStatus {
+  configured: boolean;
+  public_key: string | null;
+  subscription_count: number;
+  enabled_subscription_count: number;
+}
+
+export interface PushDevice {
+  id: number;
+  device_name: string;
+  user_agent: string;
+  enabled: boolean;
+  failure_count: number;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  device_name: string;
+  user_agent: string;
+}
+
+export interface PushActionResponse extends ActionResponse {
+  delivered: number;
+  disabled: number;
+  failed: number;
+}
+
 export interface BoardValidationResponse {
   board: string;
   valid: boolean;
