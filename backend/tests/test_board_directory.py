@@ -1,6 +1,5 @@
 from app.services.board_directory import BoardDirectoryService
 
-
 POPULAR_HTML = """
 <html>
   <body>
