@@ -73,18 +73,6 @@ export function DashboardPage({ isAdmin }: DashboardPageProps) {
       />
 
       {feedback && <Feedback type={feedback.type} message={feedback.message} />}
-      {isAdmin && !stats?.telegram_configured && (
-        <Feedback
-          type="info"
-          message="管理員 Telegram 尚未設定。請先在服務環境變數填入 Bot Token 與 Chat ID。"
-        />
-      )}
-      {!isAdmin && (
-        <Feedback
-          type="info"
-          message="目前已完成個人帳號與規則隔離；PWA 推播通知會在下一階段加入。"
-        />
-      )}
 
       <section className="p-dashboard__stats" aria-label="統計資料">
         <article className="c-stat-card">
@@ -145,7 +133,7 @@ export function DashboardPage({ isAdmin }: DashboardPageProps) {
               <dd>{stats.last_run.matches_count}</dd>
             </div>
             <div className="c-detail-grid__item">
-              <dt>管理員通知</dt>
+              <dt>通知傳送</dt>
               <dd>{stats.last_run.notification_sent ? '已傳送' : '未傳送'}</dd>
             </div>
             {isAdmin && stats.last_run.error_message && (
