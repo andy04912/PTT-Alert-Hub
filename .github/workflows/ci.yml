@@ -29,9 +29,24 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --upgrade pip && pip install -e '.[dev]'
       - name: Ruff
-        run: ruff check app tests scripts
+        id: ruff
+        continue-on-error: true
+        run: set -o pipefail; ruff check app tests scripts 2>&1 | tee ruff.log
       - name: Pytest
-        run: pytest
+        id: pytest
+        continue-on-error: true
+        run: set -o pipefail; pytest 2>&1 | tee pytest.log
+      - name: Upload backend logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-validation-logs
+          path: |
+            backend/ruff.log
+            backend/pytest.log
+      - name: Enforce backend result
+        if: steps.ruff.outcome == 'failure' || steps.pytest.outcome == 'failure'
+        run: exit 1
 
   frontend:
     name: Frontend build
@@ -51,6 +66,21 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build
-        run: npm run build
+        id: build
+        continue-on-error: true
+        run: set -o pipefail; npm run build 2>&1 | tee build.log
       - name: Validate service worker syntax
-        run: node --check public/sw.js
+        id: service-worker
+        continue-on-error: true
+        run: set -o pipefail; node --check public/sw.js 2>&1 | tee service-worker.log
+      - name: Upload frontend logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-validation-logs
+          path: |
+            frontend/build.log
+            frontend/service-worker.log
+      - name: Enforce frontend result
+        if: steps.build.outcome == 'failure' || steps.service-worker.outcome == 'failure'
+        run: exit 1
