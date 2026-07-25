@@ -196,7 +196,7 @@ class CrawlService:
                 False,
             )
         if not self.notifier.configured:
-            return "已有符合文章，但尚未設定 Telegram Bot Token 或 Chat ID。", True, False
+            return None, False, False
 
         selected: list[MatchedArticle] = []
         for pending_match in pending_matches:
