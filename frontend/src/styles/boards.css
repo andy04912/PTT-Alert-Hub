@@ -1,3 +1,8 @@
+.c-board-picker__search {
+  position: relative;
+  min-width: 0;
+}
+
 .c-board-browser__title {
   margin-top: 3px;
   font-size: 12px;
@@ -89,20 +94,28 @@
 }
 
 @media (max-width: 640px) {
+  .c-board-picker {
+    scroll-margin-top: calc(76px + env(safe-area-inset-top));
+  }
+
   .c-board-picker__control {
     grid-template-columns: 1fr;
   }
 
+  .c-board-picker__control > .c-button {
+    width: 100%;
+  }
+
   .c-board-picker__popover {
-    position: fixed;
-    top: auto;
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
+    position: static;
+    width: 100%;
+    margin-top: 7px;
   }
 
   .c-board-picker__results {
-    max-height: min(52vh, 360px);
+    max-height: min(36dvh, 260px);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .c-board-option {
