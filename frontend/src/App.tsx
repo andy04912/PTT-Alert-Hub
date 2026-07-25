@@ -8,6 +8,7 @@ import { PwaManager } from './components/PwaManager';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { MatchesPage } from './pages/MatchesPage';
+import { PushPage } from './pages/PushPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { RulesPage } from './pages/RulesPage';
 import { RunsPage } from './pages/RunsPage';
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="/" element={<DashboardPage isAdmin={user.is_admin} />} />
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/matches" element={<MatchesPage />} />
+            <Route path="/push" element={<PushPage />} />
             {user.is_admin && <Route path="/runs" element={<RunsPage />} />}
             {user.is_admin && <Route path="/settings" element={<SettingsPage />} />}
             <Route path="*" element={<Navigate to="/" replace />} />
