@@ -10,7 +10,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models import ArticleMatch, PushSubscription, Rule, SeenArticle, utc_now
+from app.models import ArticleMatch, PushSubscription, Rule, SeenArticle, User, utc_now
 
 
 @dataclass(slots=True)
@@ -70,7 +70,11 @@ class WebPushService:
         subscriptions = list(
             db.scalars(
                 select(PushSubscription)
-                .where(PushSubscription.enabled.is_(True))
+                .join(User, User.id == PushSubscription.user_id)
+                .where(
+                    PushSubscription.enabled.is_(True),
+                    User.is_active.is_(True),
+                )
                 .order_by(PushSubscription.user_id, PushSubscription.id)
             ).all()
         )
@@ -162,11 +166,11 @@ class WebPushService:
                         + (f"（HTTP {status_code}）" if status_code else "")
                     )
                 db.add(subscription)
-            except Exception as error:
+            except Exception:
                 subscription.failure_count += 1
                 subscription.last_failure_at = utc_now()
                 result.failed += 1
-                result.errors.append(f"{subscription.device_name} 推播失敗：{error}")
+                result.errors.append(f"{subscription.device_name} 推播處理失敗")
                 db.add(subscription)
             else:
                 subscription.failure_count = 0
