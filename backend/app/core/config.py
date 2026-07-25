@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@example.com"
+
     ptt_base_url: str = "https://www.ptt.cc"
     ptt_request_delay_seconds: float = 2.0
     ptt_timeout_seconds: float = 15.0
@@ -70,6 +74,14 @@ class Settings(BaseSettings):
     @property
     def telegram_configured(self) -> bool:
         return bool(self.telegram_bot_token.strip() and self.telegram_chat_id.strip())
+
+    @property
+    def web_push_configured(self) -> bool:
+        return bool(
+            self.vapid_public_key.strip()
+            and self.vapid_private_key.strip()
+            and self.vapid_subject.strip()
+        )
 
     @property
     def normalized_bootstrap_admin_email(self) -> str:
