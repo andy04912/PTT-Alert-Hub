@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -41,7 +41,7 @@ class SchedulerService:
             replace_existing=True,
             coalesce=True,
             max_instances=1,
-            next_run_time=datetime.now(timezone.utc),
+            next_run_time=datetime.now(UTC),
         )
         self.scheduler.start()
 
@@ -159,7 +159,7 @@ class SchedulerService:
             return None
         if value.tzinfo is None:
             return value
-        return value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value.astimezone(UTC).replace(tzinfo=None)
 
 
 scheduler_service = SchedulerService()
