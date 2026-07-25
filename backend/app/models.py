@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import enum
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from enum import StrEnum
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -10,15 +10,15 @@ from app.database import Base
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
-class RuleMatchType(str, enum.Enum):
+class RuleMatchType(StrEnum):
     TITLE_KEYWORD = "title_keyword"
     AUTHOR = "author"
 
 
-class CrawlRunStatus(str, enum.Enum):
+class CrawlRunStatus(StrEnum):
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
