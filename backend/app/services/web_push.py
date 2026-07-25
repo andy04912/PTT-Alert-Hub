@@ -24,7 +24,7 @@ class PushDeliveryResult:
     def sent(self) -> bool:
         return self.delivered > 0
 
-    def merge(self, other: "PushDeliveryResult") -> None:
+    def merge(self, other: PushDeliveryResult) -> None:
         self.delivered += other.delivered
         self.disabled += other.disabled
         self.failed += other.failed
@@ -54,7 +54,7 @@ class WebPushService:
         subscriptions = self._active_subscriptions(db, user_id)
         payload = {
             "title": "PTT Alert Hub 測試通知",
-            "body": "這台裝置已成功連結 PWA 推播。",
+            "body": "你的推播裝置已成功連結 PWA 通知。",
             "url": "/push",
             "tag": f"ptt-alert-test-{uuid4().hex}",
         }
