@@ -30,11 +30,15 @@ function supportsWebPush(): boolean {
   );
 }
 
-function urlBase64ToUint8Array(value: string): Uint8Array {
+function urlBase64ToArrayBuffer(value: string): ArrayBuffer {
   const padding = '='.repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, '+').replace(/_/g, '/');
   const raw = window.atob(base64);
-  return Uint8Array.from(raw, (character) => character.charCodeAt(0));
+  const bytes = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let index = 0; index < raw.length; index += 1) {
+    bytes[index] = raw.charCodeAt(index);
+  }
+  return bytes.buffer;
 }
 
 function getDeviceName(): string {
@@ -124,7 +128,7 @@ export function PushPage() {
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(status.public_key),
+          applicationServerKey: urlBase64ToArrayBuffer(status.public_key),
         });
       }
 
