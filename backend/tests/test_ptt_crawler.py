@@ -1,7 +1,6 @@
 from app.core.boards import normalize_board_name
 from app.services.ptt_crawler import PttCrawler
 
-
 HTML = """
 <html>
   <body>
