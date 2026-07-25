@@ -9,6 +9,10 @@ import type {
   CrawlRun,
   DashboardStats,
   LoginResponse,
+  PushActionResponse,
+  PushDevice,
+  PushStatus,
+  PushSubscriptionPayload,
   Rule,
   RulePayload,
   User,
@@ -115,6 +119,23 @@ export const api = {
     request<BoardValidationResponse>(`/rules/validate/${encodeURIComponent(board)}`),
 
   getMatches: (limit = 100) => request<ArticleMatch[]>(`/matches?limit=${limit}`),
+
+  getPushStatus: () => request<PushStatus>('/push/status'),
+  getPushSubscriptions: () => request<PushDevice[]>('/push/subscriptions'),
+  savePushSubscription: (payload: PushSubscriptionPayload) =>
+    request<PushDevice>('/push/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  removePushSubscription: (endpoint: string) =>
+    request<ActionResponse>('/push/subscriptions/remove', {
+      method: 'POST',
+      body: JSON.stringify({ endpoint }),
+    }),
+  testPushNotification: () =>
+    request<PushActionResponse>('/push/test', {
+      method: 'POST',
+    }),
 
   getPopularBoards: (limit = 50) =>
     request<BoardOption[]>(`/boards/popular?limit=${limit}`),
