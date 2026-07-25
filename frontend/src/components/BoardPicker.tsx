@@ -70,6 +70,19 @@ export function BoardPicker({ value, onChange, disabled = false }: BoardPickerPr
     };
   }, [disabled, open, value]);
 
+  const revealPickerOnMobile = () => {
+    setOpen(true);
+
+    if (!window.matchMedia('(max-width: 640px)').matches) {
+      return;
+    }
+
+    // 等待手機鍵盤完成展開，再把輸入區移到畫面上方，保留結果清單的可視空間。
+    window.setTimeout(() => {
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 220);
+  };
+
   const selectBoard = (board: string) => {
     onChange(board);
     setOpen(false);
@@ -131,22 +144,68 @@ export function BoardPicker({ value, onChange, disabled = false }: BoardPickerPr
   return (
     <div className="c-board-picker" ref={rootRef}>
       <div className="c-board-picker__control">
-        <input
-          className="c-input c-board-picker__input"
-          placeholder="搜尋中文板名或看板代號"
-          value={value}
-          disabled={disabled}
-          autoComplete="off"
-          required
-          role="combobox"
-          aria-expanded={open}
-          aria-controls="board-picker-results"
-          onFocus={() => setOpen(true)}
-          onChange={(event) => {
-            onChange(event.target.value);
-            setOpen(true);
-          }}
-        />
+        <div className="c-board-picker__search">
+          <input
+            className="c-input c-board-picker__input"
+            placeholder="搜尋中文板名或看板代號"
+            value={value}
+            disabled={disabled}
+            autoComplete="off"
+            required
+            role="combobox"
+            aria-expanded={open}
+            aria-controls="board-picker-results"
+            onFocus={revealPickerOnMobile}
+            onChange={(event) => {
+              onChange(event.target.value);
+              setOpen(true);
+            }}
+          />
+
+          {open && (
+            <div className="c-board-picker__popover" id="board-picker-results">
+              <div className="c-board-picker__popover-header">
+                <strong>{resultLabel}</strong>
+                <small>{loading ? '讀取中…' : `${suggestions.length} 個結果`}</small>
+              </div>
+
+              {searchError ? (
+                <p className="c-board-picker__message c-board-picker__message--error">
+                  {searchError}
+                </p>
+              ) : suggestions.length > 0 ? (
+                <div className="c-board-picker__results" role="listbox">
+                  {suggestions.map((option) => (
+                    <button
+                      className="c-board-option"
+                      type="button"
+                      role="option"
+                      aria-selected={value === option.board}
+                      key={option.board}
+                      onClick={() => selectBoard(option.board)}
+                    >
+                      <span className="c-board-option__main">
+                        <strong className="c-board-option__name">{option.board}</strong>
+                        <span className="c-board-option__title">
+                          {option.title || 'PTT 看板'}
+                        </span>
+                      </span>
+                      <span className="c-board-option__meta">
+                        {option.category || '未分類'}
+                        {option.popularity !== null ? `・${option.popularity} 人` : ''}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="c-board-picker__message">
+                  找不到建議項目。仍可保留目前輸入值，建立規則時會連線 PTT 驗證。
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         <button
           className="c-button c-button--secondary"
           type="button"
@@ -157,49 +216,6 @@ export function BoardPicker({ value, onChange, disabled = false }: BoardPickerPr
           {browserOpen ? '關閉分類' : '瀏覽分類'}
         </button>
       </div>
-
-      {open && (
-        <div className="c-board-picker__popover" id="board-picker-results">
-          <div className="c-board-picker__popover-header">
-            <strong>{resultLabel}</strong>
-            <small>{loading ? '讀取中…' : `${suggestions.length} 個結果`}</small>
-          </div>
-
-          {searchError ? (
-            <p className="c-board-picker__message c-board-picker__message--error">
-              {searchError}
-            </p>
-          ) : suggestions.length > 0 ? (
-            <div className="c-board-picker__results" role="listbox">
-              {suggestions.map((option) => (
-                <button
-                  className="c-board-option"
-                  type="button"
-                  role="option"
-                  aria-selected={value === option.board}
-                  key={option.board}
-                  onClick={() => selectBoard(option.board)}
-                >
-                  <span className="c-board-option__main">
-                    <strong className="c-board-option__name">{option.board}</strong>
-                    <span className="c-board-option__title">
-                      {option.title || 'PTT 看板'}
-                    </span>
-                  </span>
-                  <span className="c-board-option__meta">
-                    {option.category || '未分類'}
-                    {option.popularity !== null ? `・${option.popularity} 人` : ''}
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="c-board-picker__message">
-              找不到建議項目。仍可保留目前輸入值，建立規則時會連線 PTT 驗證。
-            </p>
-          )}
-        </div>
-      )}
 
       {browserOpen && (
         <div className="c-board-browser">
