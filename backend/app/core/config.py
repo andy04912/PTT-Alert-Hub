@@ -15,23 +15,11 @@ class Settings(BaseSettings):
 
     app_name: str = "PTT Alert Hub"
     environment: str = "development"
-    timezone: str = Field(
-        default="Asia/Taipei",
-        validation_alias=AliasChoices("TIMEZONE", "TZ"),
-    )
+    timezone: str = Field(default="Asia/Taipei", validation_alias=AliasChoices("TIMEZONE", "TZ"))
 
-    bootstrap_admin_email: str = Field(
-        default="admin@example.com",
-        validation_alias=AliasChoices("ADMIN_EMAIL", "ADMIN_USERNAME"),
-    )
-    bootstrap_admin_password: str = Field(
-        default="change-me-now",
-        validation_alias=AliasChoices("ADMIN_PASSWORD"),
-    )
-    bootstrap_admin_display_name: str = Field(
-        default="系統管理員",
-        validation_alias=AliasChoices("ADMIN_DISPLAY_NAME"),
-    )
+    bootstrap_admin_email: str = Field(default="admin@example.com", validation_alias=AliasChoices("ADMIN_EMAIL", "ADMIN_USERNAME"))
+    bootstrap_admin_password: str = Field(default="change-me-now", validation_alias=AliasChoices("ADMIN_PASSWORD"))
+    bootstrap_admin_display_name: str = Field(default="系統管理員", validation_alias=AliasChoices("ADMIN_DISPLAY_NAME"))
     jwt_secret: str = "replace-with-a-long-random-secret"
     jwt_expire_minutes: int = 1440
 
@@ -42,7 +30,6 @@ class Settings(BaseSettings):
     def normalize_database_url(cls, value: object) -> object:
         if not isinstance(value, str):
             return value
-
         if value.startswith("postgresql://"):
             return value.replace("postgresql://", "postgresql+psycopg://", 1)
         if value.startswith("postgres://"):
@@ -51,6 +38,10 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@example.com"
 
     ptt_base_url: str = "https://www.ptt.cc"
     ptt_request_delay_seconds: float = 2.0
@@ -72,6 +63,10 @@ class Settings(BaseSettings):
         return bool(self.telegram_bot_token.strip() and self.telegram_chat_id.strip())
 
     @property
+    def web_push_configured(self) -> bool:
+        return bool(self.vapid_public_key.strip() and self.vapid_private_key.strip() and self.vapid_subject.strip())
+
+    @property
     def normalized_bootstrap_admin_email(self) -> str:
         email = self.bootstrap_admin_email.strip().lower()
         if "@" not in email:
@@ -82,16 +77,10 @@ class Settings(BaseSettings):
         sqlite_prefix = "sqlite:///"
         if not self.database_url.startswith(sqlite_prefix):
             return
-
         raw_path = self.database_url.removeprefix(sqlite_prefix)
         if raw_path == ":memory:":
             return
-
-        database_path = (
-            Path(f"/{raw_path}")
-            if self.database_url.startswith("sqlite:////")
-            else Path(raw_path)
-        )
+        database_path = Path(f"/{raw_path}") if self.database_url.startswith("sqlite:////") else Path(raw_path)
         database_path.parent.mkdir(parents=True, exist_ok=True)
 
 
