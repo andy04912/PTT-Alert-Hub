@@ -1,6 +1,14 @@
 export type RuleMatchType = 'title_keyword' | 'author';
 export type CrawlRunStatus = 'running' | 'success' | 'failed' | 'skipped';
 
+export interface User {
+  id: number;
+  email: string;
+  display_name: string;
+  is_admin: boolean;
+  created_at: string;
+}
+
 export interface Rule {
   id: number;
   name: string;
@@ -14,6 +22,19 @@ export interface Rule {
 }
 
 export type RulePayload = Omit<Rule, 'id' | 'created_at' | 'updated_at'>;
+
+export interface ArticleMatch {
+  id: number;
+  rule_id: number;
+  rule_name: string;
+  board: string;
+  title: string;
+  author: string;
+  url: string;
+  published_at: string | null;
+  matched_at: string;
+  notified_at: string | null;
+}
 
 export interface CrawlRun {
   id: number;
@@ -57,6 +78,7 @@ export interface AppSettingPayload {
 export interface LoginResponse {
   access_token: string;
   token_type: string;
+  user: User;
 }
 
 export interface ActionResponse {

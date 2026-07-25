@@ -1,8 +1,8 @@
 import sqlite3
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, event, text
-from sqlalchemy.engine import Engine
+from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import get_settings
@@ -30,9 +30,37 @@ class Base(DeclarativeBase):
     pass
 
 
+def _ensure_account_columns(connection: Connection) -> None:
+    inspector = inspect(connection)
+    table_names = set(inspector.get_table_names())
+
+    if "rules" in table_names:
+        rule_columns = {column["name"] for column in inspector.get_columns("rules")}
+        if "user_id" not in rule_columns:
+            connection.execute(text("ALTER TABLE rules ADD COLUMN user_id INTEGER"))
+        connection.execute(text("CREATE INDEX IF NOT EXISTS ix_rules_user_id ON rules (user_id)"))
+
+    if "article_matches" in table_names:
+        match_columns = {column["name"] for column in inspector.get_columns("article_matches")}
+        if "user_id" not in match_columns:
+            connection.execute(text("ALTER TABLE article_matches ADD COLUMN user_id INTEGER"))
+        connection.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_article_matches_user_id "
+                "ON article_matches (user_id)"
+            )
+        )
+
+
+def _initialize_schema(connection: Connection) -> None:
+    Base.metadata.create_all(bind=connection)
+    _ensure_account_columns(connection)
+
+
 def initialize_database() -> None:
     if engine.dialect.name != "postgresql":
-        Base.metadata.create_all(bind=engine)
+        with engine.begin() as connection:
+            _initialize_schema(connection)
         return
 
     advisory_lock_key = 781_046_213
@@ -42,7 +70,7 @@ def initialize_database() -> None:
             {"lock_key": advisory_lock_key},
         )
         try:
-            Base.metadata.create_all(bind=connection)
+            _initialize_schema(connection)
             connection.commit()
         except Exception:
             connection.rollback()

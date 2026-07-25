@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.dependencies import AdminUser
+from app.dependencies import CurrentUser
 from app.schemas import BoardCategoryRead, BoardOptionRead
 from app.services.board_directory import (
     BoardDirectoryError,
@@ -22,7 +22,7 @@ def _option_to_response(option) -> BoardOptionRead:
 
 @router.get("/popular", response_model=list[BoardOptionRead])
 def list_popular_boards(
-    _admin: AdminUser,
+    _current_user: CurrentUser,
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[BoardOptionRead]:
     try:
@@ -39,7 +39,7 @@ def list_popular_boards(
 
 @router.get("/search", response_model=list[BoardOptionRead])
 def search_boards(
-    _admin: AdminUser,
+    _current_user: CurrentUser,
     q: str = Query(default="", max_length=80),
     limit: int = Query(default=30, ge=1, le=100),
 ) -> list[BoardOptionRead]:
@@ -56,7 +56,7 @@ def search_boards(
 
 
 @router.get("/categories/{category_id}", response_model=BoardCategoryRead)
-def browse_category(category_id: int, _admin: AdminUser) -> BoardCategoryRead:
+def browse_category(category_id: int, _current_user: CurrentUser) -> BoardCategoryRead:
     try:
         category = board_directory_service.get_category(category_id)
     except BoardDirectoryError as error:

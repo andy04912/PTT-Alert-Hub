@@ -1,80 +1,110 @@
 # PTT Alert Hub
 
-PTT 定時爬蟲與通知規則管理後台。
+PTT Alert Hub 是一個定時監控 PTT 看板文章列表的個人通知服務。
 
-你可以建立多條監控規則，例如：
+使用者可以自行註冊帳號，建立獨立的看板規則，例如：
 
 - `Tech_Job` 看板，文章標題包含「徵才」。
-- `TaichungBun` 看板，文章作者帳號完全符合 `andy123`。
+- `TaichungBun` 看板，文章作者帳號等於 `andy123`。
 
-系統會依排程抓取各看板最新文章列表，以文章網址去重，並將同一輪命中的文章合併成一則 Telegram 通知。
+Crawler Worker 會將啟用規則依看板分組，同一個看板每輪只爬一次，再分別比對每位使用者的規則。
 
-## v5 架構調整
+## 目前開發階段
 
-v5 已將 API 與定時爬蟲拆成不同程序：
+`feature/personal-accounts` 已完成第一階段：
 
-- `backend`：FastAPI、JWT、規則管理、查詢紀錄、手動爬取。
-- `crawler-worker`：APScheduler 與定時爬取。
-- `database`：PostgreSQL，共享規則、已讀文章、命中、執行紀錄、Worker 狀態與鎖。
-- `frontend`：React 管理後台。
+- Email 自助註冊。
+- Email 與密碼登入。
+- Argon2 密碼雜湊。
+- JWT 綁定資料庫使用者 ID。
+- 每個使用者只能管理自己的規則。
+- 每個使用者只能查看自己的命中紀錄。
+- 系統設定、手動爬取與全站爬取紀錄只開放管理員。
+- 既有規則會在資料庫升級時自動歸到 Bootstrap 管理員。
+- 同一個 PTT 看板仍然只會爬一次，不會因使用者增加而重複請求。
 
-API 可以水平擴充成多個 Replica。Crawler Worker 使用資料庫 Leader Lease 選出唯一主節點；即使 Worker 不小心開了兩份，也只有其中一份會建立定時爬取工作。
+下一階段預計加入：
 
-每次爬取前還會取得全域 Crawl Lock，因此以下情況也不會同時爬 PTT：
+- PWA 安裝。
+- Service Worker。
+- Web Push 訂閱。
+- 每位使用者的手機與桌面推播通知。
 
-- 排程執行時有人按「立即爬取」。
-- 多個 API Replica 同時收到手動爬取請求。
-- Worker 主節點切換時短暫重疊。
+目前 Telegram 為過渡通知方式，只會發送 Bootstrap 管理員自己的命中內容，避免其他使用者的資料被送到管理員 Chat ID。
 
 ## 系統架構
 
 ```text
-┌────────────────────────┐
-│ React 管理後台          │
-└────────────┬───────────┘
-             │ /api
-┌────────────▼───────────┐
-│ FastAPI API             │  可多 Replica
-│ JWT / REST / 手動爬取   │
-└────────────┬───────────┘
-             │
-┌────────────▼───────────┐
-│ PostgreSQL              │
-│ 規則 / 紀錄 / Lease     │
-└────────────┬───────────┘
-             │
-┌────────────▼───────────┐
-│ Crawler Worker          │
-│ APScheduler / PTT       │
-│ Leader Lease / Crawl Lock│
-└────────────┬───────────┘
-             │
-┌────────────▼───────────┐
-│ Telegram Bot API        │
-└────────────────────────┘
+瀏覽器 / PWA（下一階段）
+        │
+        ▼
+React + Vite 管理介面
+        │ /api
+        ▼
+FastAPI API
+- 註冊 / 登入
+- 個人規則
+- 個人命中紀錄
+- 管理員系統功能
+        │
+        ▼
+PostgreSQL
+- users
+- rules
+- seen_articles
+- article_matches
+- crawl_runs
+- runtime_locks
+- worker_state
+        ▲
+        │
+Crawler Worker
+- APScheduler
+- Leader Lease
+- Crawl Lock
+- PTT 列表爬取
+- 多使用者規則比對
 ```
 
-## 主要功能
+## 權限模型
 
-- React + Vite + TypeScript 管理後台。
-- FastAPI REST API。
-- 獨立 APScheduler Worker。
-- PostgreSQL 多服務共享資料。
-- Worker Leader Lease 與自動接手。
-- 全域 Crawl Lock，避免重複爬取與重複通知。
-- 支援標題包含關鍵字。
-- 支援作者帳號完全符合。
-- 熱門看板、搜尋看板與分類瀏覽。
-- 建立規則前實際驗證 PTT 看板。
-- 使用文章網址永久去重。
-- Telegram 傳送失敗時保留待通知紀錄。
-- 同一輪多個命中合併成一則通知。
-- 一分鐘排程模式。
-- Docker Compose 一鍵啟動。
+### 一般使用者
 
-## 快速啟動
+可以使用：
 
-### 1. 建立環境變數
+- 註冊與登入。
+- 個人總覽。
+- 個人規則 CRUD。
+- 看板搜尋與看板驗證。
+- 個人命中紀錄。
+
+不能使用：
+
+- 修改全域爬取頻率。
+- 手動觸發全站爬取。
+- 查看全站爬取紀錄。
+- 測試管理員 Telegram 通知。
+
+### 系統管理員
+
+Bootstrap 管理員除了一般功能外，還可以：
+
+- 修改全域爬取頻率。
+- 手動執行爬取。
+- 查看全站爬取紀錄。
+- 測試 Telegram 通知。
+
+## 密碼安全
+
+密碼不會以明文寫入資料庫。
+
+Backend 使用 `pwdlib[argon2]` 產生與驗證 Argon2 密碼雜湊。
+
+JWT 的 `sub` 儲存使用者資料庫 ID，不再使用固定管理員名稱。
+
+## 環境變數
+
+建立本機環境設定：
 
 ```bash
 cp .env.example .env
@@ -83,23 +113,53 @@ cp .env.example .env
 至少修改：
 
 ```dotenv
-ADMIN_USERNAME=admin
+ADMIN_EMAIL=你的管理員Email
+ADMIN_DISPLAY_NAME=你的顯示名稱
 ADMIN_PASSWORD=請換成強密碼
 JWT_SECRET=請換成長度足夠的隨機字串
 
 POSTGRES_PASSWORD=請換成資料庫強密碼
 
-TELEGRAM_BOT_TOKEN=你的 Bot Token
-TELEGRAM_CHAT_ID=你的 Chat ID
+TELEGRAM_BOT_TOKEN=你的BotToken
+TELEGRAM_CHAT_ID=你的ChatID
 ```
 
-可產生 JWT Secret：
+Windows PowerShell 產生 JWT Secret：
 
-```bash
-openssl rand -hex 32
+```powershell
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$bytes = New-Object byte[] 32
+$rng.GetBytes($bytes)
+$rng.Dispose()
+$jwt_secret = ($bytes | ForEach-Object { $_.ToString("x2") }) -join ""
+$jwt_secret
 ```
 
-### 2. 啟動
+### 管理員相容行為
+
+新版本優先讀取：
+
+```dotenv
+ADMIN_EMAIL=admin@example.com
+```
+
+若部署環境仍只有舊的：
+
+```dotenv
+ADMIN_USERNAME=admin
+```
+
+系統會建立：
+
+```text
+admin@local.invalid
+```
+
+建議部署前明確新增 `ADMIN_EMAIL`，避免忘記實際登入 Email。
+
+## Docker Compose
+
+啟動：
 
 ```bash
 docker compose up --build -d
@@ -107,60 +167,39 @@ docker compose up --build -d
 
 開啟：
 
-- 管理後台：<http://localhost:8080>
+- 前端：<http://localhost:8080>
 - Swagger：<http://localhost:8000/docs>
-- API Health Check：<http://localhost:8000/api/health>
+- Health Check：<http://localhost:8000/api/health>
 
-查看所有 Log：
+查看 Log：
 
 ```bash
 docker compose logs -f
 ```
 
-只看 Worker：
-
-```bash
-docker compose logs -f crawler-worker
-```
-
-停止服務：
+停止：
 
 ```bash
 docker compose down
 ```
 
-PostgreSQL 資料保存在 Docker Volume `database-data`。確定要刪除全部資料時才使用：
-
-```bash
-docker compose down -v
-```
-
 ## 本機開發
 
-### Backend API
-
-```bash
-cd backend
-python -m venv .venv
-```
-
-Windows PowerShell：
+### Backend
 
 ```powershell
+cd backend
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-$env:DATABASE_URL="postgresql+psycopg://ptt_alert_hub:password@localhost:5432/ptt_alert_hub"
 fastapi dev app/main.py --host 0.0.0.0 --port 8000
 ```
 
 ### Crawler Worker
 
-另開一個終端機，使用相同的 `DATABASE_URL`：
-
 ```powershell
 cd backend
 .\.venv\Scripts\Activate.ps1
-$env:DATABASE_URL="postgresql+psycopg://ptt_alert_hub:password@localhost:5432/ptt_alert_hub"
 python -m app.worker
 ```
 
@@ -172,204 +211,136 @@ npm install
 npm run dev
 ```
 
-開發環境網址：<http://localhost:5173>
+## Zeabur 服務
 
-## 建立規則
+同一個 GitHub Repo 建立四個服務：
 
-### Tech_Job 標題包含「徵才」
+| 服務 | Root Directory | Dockerfile | 公開網域 |
+|---|---|---|---|
+| PostgreSQL | 不適用 | Zeabur Database | 否 |
+| Backend | `backend` | `Dockerfile` | 否 |
+| Crawler Worker | `backend` | `Dockerfile.worker` | 否 |
+| Frontend | `frontend` | `Dockerfile` | 是 |
 
-```text
-規則名稱：Tech_Job 徵才
-看板：Tech_Job
-比對方式：標題包含關鍵字
-關鍵字：徵才
+### Backend 環境變數
+
+```dotenv
+APP_NAME=PTT Alert Hub
+ENVIRONMENT=production
+TIMEZONE=Asia/Taipei
+
+ADMIN_EMAIL=你的管理員Email
+ADMIN_DISPLAY_NAME=你的顯示名稱
+ADMIN_PASSWORD=你的強密碼
+JWT_SECRET=你的JWTSecret
+JWT_EXPIRE_MINUTES=1440
+
+DATABASE_URL=${POSTGRES_CONNECTION_STRING}
+
+TELEGRAM_BOT_TOKEN=你的BotToken
+TELEGRAM_CHAT_ID=你的ChatID
+
+PTT_BASE_URL=https://www.ptt.cc
+PTT_REQUEST_DELAY_SECONDS=2.0
+PTT_TIMEOUT_SECONDS=15
+CRAWL_LOCK_TTL_SECONDS=1800
+
+WORKER_SYNC_SECONDS=10
+WORKER_LEASE_TTL_SECONDS=30
+WORKER_HEARTBEAT_TIMEOUT_SECONDS=45
 ```
 
-### TaichungBun 指定作者
+### Crawler Worker 環境變數
 
-```text
-規則名稱：TaichungBun andy123
-看板：TaichungBun
-比對方式：作者帳號完全符合
-作者帳號：andy123
+```dotenv
+ZBPACK_DOCKERFILE_PATH=Dockerfile.worker
+ENVIRONMENT=production
+TIMEZONE=Asia/Taipei
+DATABASE_URL=${POSTGRES_CONNECTION_STRING}
+TELEGRAM_BOT_TOKEN=你的BotToken
+TELEGRAM_CHAT_ID=你的ChatID
+PTT_BASE_URL=https://www.ptt.cc
+PTT_REQUEST_DELAY_SECONDS=2.0
+PTT_TIMEOUT_SECONDS=15
+CRAWL_LOCK_TTL_SECONDS=1800
+WORKER_SYNC_SECONDS=10
+WORKER_LEASE_TTL_SECONDS=30
+WORKER_HEARTBEAT_TIMEOUT_SECONDS=45
 ```
 
-台中板實際代號是 `TaichungBun`；輸入 `Taichung` 時會自動校正。
+### Frontend 環境變數
+
+```dotenv
+BACKEND_HOST=${PTT_ALERT_HUB_HOST}
+BACKEND_PORT=8080
+```
+
+Frontend Nginx 會監聽 Zeabur 注入的 `$PORT`。
+
+## 資料庫升級
+
+API 與 Worker 啟動時會：
+
+1. 建立 `users` 資料表。
+2. 檢查 `rules.user_id`。
+3. 檢查 `article_matches.user_id`。
+4. 建立缺少的索引。
+5. 建立 Bootstrap 管理員。
+6. 將舊規則與舊命中回填給 Bootstrap 管理員。
+
+PostgreSQL 初始化期間會使用 Advisory Lock，避免 Backend 與 Worker 同時修改結構。
+
+這一階段仍採輕量升級程序；後續資料模型變複雜時應導入 Alembic。
 
 ## 一分鐘排程
 
-後台可設定：
+管理員可以設定：
 
 ```text
 執行間隔：1 分鐘
-每個看板掃描頁數：1 頁
+每個看板掃描：1 頁
 ```
 
 限制：
 
-- 執行間隔為 1 分鐘時，每個看板最多掃描 2 頁。
-- 建議使用 1 頁。
-- 所有 PTT 頁面請求至少間隔 2 秒。
-- 遇到 `429`、`500`、`502`、`503`、`504` 時自動退避重試。
-- 同一篇文章不會重複通知。
-- 上一輪尚未完成時，下一輪不會重疊執行。
-
-設定儲存後，Crawler Worker 預設會在 10 秒內讀取新頻率並重新排程。
-
-## 多 Replica 行為
-
-### Backend API
-
-Backend API 可以設定多個 Replica，因為 API 本身不會啟動 APScheduler。所有 Replica 必須連到同一個 PostgreSQL。
-
-### Crawler Worker
-
-建議 Worker 維持 1 Replica，節省資源；但即使平台誤設為 2 個以上，Worker 也會透過資料庫租約選出唯一 Leader。
-
-- Leader 每 10 秒更新租約與 Heartbeat。
-- 租約預設 30 秒失效。
-- Leader 中斷後，其他 Worker 可以接手。
-- 後台「下次排程」資料來自 Worker 寫入 PostgreSQL 的狀態，不依賴特定 API Replica 的記憶體。
-
-### 手動爬取
-
-「立即爬取」仍由收到請求的 API Replica 執行，但會先取得與 Worker 共用的全域 Crawl Lock。因此手動爬取與定時爬取不會同時執行。
-
-## Zeabur 部署方式
-
-建議建立四個服務：
-
-1. PostgreSQL
-2. Backend API
-3. Crawler Worker
-4. Frontend
-
-Backend API 與 Crawler Worker 使用相同 Backend Dockerfile，但啟動命令不同。
-
-### Backend API 啟動命令
-
-```text
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-### Crawler Worker 啟動命令
-
-```text
-python -m app.worker
-```
-
-兩個服務都必須設定同一組：
-
-```dotenv
-DATABASE_URL=postgresql+psycopg://...
-ADMIN_USERNAME=...
-ADMIN_PASSWORD=...
-JWT_SECRET=...
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHAT_ID=...
-TIMEZONE=Asia/Taipei
-```
-
-建議 Replica：
-
-```text
-Backend API：1 或更多
-Crawler Worker：1
-Frontend：1 或更多
-PostgreSQL：平台管理
-```
-
-雖然 Crawler Worker 已支援多副本防重，但沒有流量需要分攤，維持 1 個即可。
-
-## 通知行為
-
-一次爬取中的所有新命中文章會合併成一則 Telegram 訊息：
-
-```text
-🔔 PTT 新文章通知
-本次共 2 篇文章符合 2 條規則。
-
-【Tech_Job】
-• [徵才] React 前端工程師
-  作者：company_hr
-  命中：Tech_Job 徵才
-
-【TaichungBun】
-• [閒聊] 台中活動分享
-  作者：andy123
-  命中：TaichungBun andy123
-```
-
-Telegram 單則文字若放不下全部文章，剩餘待通知項目會保留到下一輪；每輪最多傳送一則。
-
-## 舊文章與去重
-
-- 不會通知規則建立前的舊文章。
-- 每篇文章以 PTT 文章網址作為唯一鍵。
-- 已掃描但未命中的文章也會標記為已讀。
-- 新增規則後不會回頭把已讀文章補通知。
-- Telegram 傳送失敗時，命中紀錄維持待通知。
-
-## 環境變數
-
-| 名稱 | 說明 | 預設值 |
-|---|---|---|
-| `APP_NAME` | 系統名稱 | `PTT Alert Hub` |
-| `ENVIRONMENT` | 執行環境 | `production` |
-| `TIMEZONE` | 排程時區 | `Asia/Taipei` |
-| `ADMIN_USERNAME` | 後台帳號 | `admin` |
-| `ADMIN_PASSWORD` | 後台密碼 | `change-me-now` |
-| `JWT_SECRET` | JWT 簽章密鑰 | 必須修改 |
-| `JWT_EXPIRE_MINUTES` | 登入憑證有效分鐘 | `1440` |
-| `DATABASE_URL` | PostgreSQL 連線字串 | 本機程式預設可使用 SQLite |
-| `POSTGRES_DB` | Compose PostgreSQL DB | `ptt_alert_hub` |
-| `POSTGRES_USER` | Compose PostgreSQL User | `ptt_alert_hub` |
-| `POSTGRES_PASSWORD` | Compose PostgreSQL Password | 必須修改 |
-| `TELEGRAM_BOT_TOKEN` | Telegram Bot Token | 空白 |
-| `TELEGRAM_CHAT_ID` | Telegram Chat ID | 空白 |
-| `PTT_REQUEST_DELAY_SECONDS` | PTT 請求最小間隔 | `2.0` |
-| `PTT_TIMEOUT_SECONDS` | HTTP Timeout | `15` |
-| `CRAWL_LOCK_TTL_SECONDS` | 異常中斷後 Crawl Lock 最長保留秒數 | `1800` |
-| `WORKER_SYNC_SECONDS` | Worker 同步設定與租約秒數 | `10` |
-| `WORKER_LEASE_TTL_SECONDS` | Worker Leader 租約秒數 | `30` |
-| `WORKER_HEARTBEAT_TIMEOUT_SECONDS` | 後台判定 Worker 離線秒數 | `45` |
-| `CORS_ORIGINS` | 跨來源白名單 | localhost |
-
-## 資料庫初始化
-
-API 與 Worker 啟動時都會確認資料表存在。使用 PostgreSQL 時，初始化會先取得 PostgreSQL Advisory Lock，避免多個 Replica 同時建立資料表而互相衝突。
-
-目前專案使用 SQLAlchemy `create_all`，尚未導入 Alembic。正式長期維護並需要修改既有欄位時，建議再加入 Alembic Migration。
-
-## PTT 爬取範圍
-
-爬蟲只讀取 PTT 網頁版的看板文章列表，不抓文章全文或推文。請保持合理頻率，並自行確認部署與使用方式符合 PTT 規範。
+- 一分鐘模式最多掃描每板 2 頁。
+- 建議每板 1 頁。
+- PTT 請求之間至少間隔 2 秒。
+- `429`、`500`、`502`、`503`、`504` 會退避重試。
+- 多個使用者監控同一個看板時，每輪仍只爬一次。
 
 ## 測試
+
+Backend：
 
 ```bash
 cd backend
 pytest
 ```
 
+Frontend：
+
+```bash
+cd frontend
+npm run build
+```
+
 ## 專案結構
 
 ```text
-ptt-alert-hub/
+PTT-Alert-Hub/
 ├─ backend/
 │  ├─ app/
 │  │  ├─ api/
 │  │  ├─ core/
 │  │  ├─ services/
-│  │  │  ├─ distributed_lock.py
-│  │  │  ├─ scheduler_service.py
-│  │  │  └─ crawl_service.py
-│  │  ├─ main.py             # FastAPI API
-│  │  ├─ worker.py           # Crawler Worker
+│  │  ├─ main.py
+│  │  ├─ worker.py
 │  │  ├─ database.py
 │  │  └─ models.py
 │  ├─ tests/
 │  ├─ Dockerfile
+│  ├─ Dockerfile.worker
 │  └─ pyproject.toml
 ├─ frontend/
 ├─ .env.example
@@ -380,10 +351,3 @@ ptt-alert-hub/
 ## License
 
 MIT
-
-## v6 Zeabur 相容調整
-
-- Frontend Nginx 改用 `BACKEND_HOST` 與 `BACKEND_PORT`，可連到 Zeabur 私有網路中的 Backend。
-- 新增 `backend/Dockerfile.worker`，Crawler Worker 不必再手動覆寫啟動命令。
-- Backend 會使用 Zeabur 注入的 `PORT`，本機預設仍為 `8000`。
-- `DATABASE_URL` 可直接使用 Zeabur 的 `${POSTGRES_CONNECTION_STRING}`；程式會自動轉成 psycopg 3 的 SQLAlchemy URL。

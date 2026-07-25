@@ -4,6 +4,7 @@ import signal
 import threading
 
 from app.database import SessionLocal, initialize_database
+from app.services.account_service import ensure_bootstrap_admin
 from app.services.app_settings import get_or_create_app_settings
 from app.services.scheduler_service import scheduler_service
 
@@ -12,6 +13,7 @@ def initialize_worker() -> None:
     initialize_database()
     db = SessionLocal()
     try:
+        ensure_bootstrap_admin(db)
         get_or_create_app_settings(db)
     finally:
         db.close()

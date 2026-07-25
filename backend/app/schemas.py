@@ -1,23 +1,44 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.core.boards import normalize_board_name
 from app.models import CrawlRunStatus, RuleMatchType
 
 
+class UserRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: EmailStr
+    display_name: str
+    is_admin: bool
+    created_at: datetime
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    display_name: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("display_name")
+    @classmethod
+    def strip_display_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("顯示名稱不可為空白")
+        return value
+
+
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
-
-class CurrentUser(BaseModel):
-    username: str
+    user: UserRead
 
 
 class RuleBase(BaseModel):

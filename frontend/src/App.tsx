@@ -1,48 +1,79 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
-import { clearStoredToken, getStoredToken, setStoredToken } from './api/client';
+import { api, clearStoredToken, getStoredToken, setStoredToken } from './api/client';
 import { AppShell } from './components/AppShell';
+import { LoadingState } from './components/Feedback';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
+import { MatchesPage } from './pages/MatchesPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { RulesPage } from './pages/RulesPage';
 import { RunsPage } from './pages/RunsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import type { LoginResponse, User } from './types';
 
 export default function App() {
-  const [authenticated, setAuthenticated] = useState(Boolean(getStoredToken()));
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(Boolean(getStoredToken()));
 
   useEffect(() => {
-    const handleExpired = () => setAuthenticated(false);
+    const handleExpired = () => {
+      setUser(null);
+      setLoading(false);
+    };
     window.addEventListener('auth-expired', handleExpired);
+
+    const token = getStoredToken();
+    if (token) {
+      api
+        .getMe()
+        .then(setUser)
+        .catch(() => setUser(null))
+        .finally(() => setLoading(false));
+    }
+
     return () => window.removeEventListener('auth-expired', handleExpired);
   }, []);
 
-  const handleLogin = (token: string) => {
-    setStoredToken(token);
-    setAuthenticated(true);
+  const handleAuthenticated = (response: LoginResponse) => {
+    setStoredToken(response.access_token);
+    setUser(response.user);
+    setLoading(false);
   };
 
   const handleLogout = () => {
     clearStoredToken();
-    setAuthenticated(false);
+    setUser(null);
   };
 
-  if (!authenticated) {
-    return <LoginPage onLogin={handleLogin} />;
+  if (loading) {
+    return <LoadingState />;
   }
 
   return (
     <BrowserRouter>
-      <AppShell onLogout={handleLogout}>
+      {user ? (
+        <AppShell user={user} onLogout={handleLogout}>
+          <Routes>
+            <Route path="/" element={<DashboardPage isAdmin={user.is_admin} />} />
+            <Route path="/rules" element={<RulesPage />} />
+            <Route path="/matches" element={<MatchesPage />} />
+            {user.is_admin && <Route path="/runs" element={<RunsPage />} />}
+            {user.is_admin && <Route path="/settings" element={<SettingsPage />} />}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AppShell>
+      ) : (
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/rules" element={<RulesPage />} />
-          <Route path="/runs" element={<RunsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<LoginPage onAuthenticated={handleAuthenticated} />} />
+          <Route
+            path="/register"
+            element={<RegisterPage onAuthenticated={handleAuthenticated} />}
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </AppShell>
+      )}
     </BrowserRouter>
   );
 }
