@@ -1,10 +1,10 @@
+from pwdlib import PasswordHash
 from sqlalchemy import select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from pwdlib import PasswordHash
 
 from app.core.config import get_settings
-from app.models import ArticleMatch, Rule, User
+from app.models import Rule, User
 
 settings = get_settings()
 password_hash = PasswordHash.recommended()
