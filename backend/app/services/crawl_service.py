@@ -29,6 +29,7 @@ from app.services.notifier import (
     build_notification_message,
 )
 from app.services.ptt_crawler import PttArticle, PttCrawler, PttCrawlerError
+from app.services.web_push import web_push_service
 
 CRAWL_LOCK_NAME = "ptt-crawl-run"
 
@@ -153,17 +154,23 @@ class CrawlService:
             db.commit()
 
         run.matches_count = len(new_matched_article_ids)
-        notification_message, notification_failed, notification_sent = self._send_pending_notification(
+        telegram_message, telegram_failed, telegram_sent = self._send_pending_notification(
             db,
             app_setting.notification_enabled,
         )
-        run.notification_sent = notification_sent
-        if notification_message:
-            errors.append(notification_message)
+        if telegram_message:
+            errors.append(telegram_message)
 
+        push_result = web_push_service.send_pending(db, app_setting.notification_enabled)
+        if push_result.errors:
+            unique_push_errors = list(dict.fromkeys(push_result.errors))
+            errors.append("Web Push：" + "；".join(unique_push_errors[:5]))
+
+        push_failed = push_result.failed > 0 and push_result.delivered == 0
+        run.notification_sent = telegram_sent or push_result.sent
         run.status = (
             CrawlRunStatus.FAILED
-            if notification_failed or crawl_failed
+            if telegram_failed or push_failed or crawl_failed
             else CrawlRunStatus.SUCCESS
         )
         run.error_message = "\n".join(errors) if errors else None
@@ -186,7 +193,7 @@ class CrawlService:
                 False,
             )
         if not self.notifier.configured:
-            return "已有符合文章，但尚未設定 Telegram Bot Token 或 Chat ID。", True, False
+            return None, False, False
 
         selected: list[MatchedArticle] = []
         for pending_match in pending_matches:
