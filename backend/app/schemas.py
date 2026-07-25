@@ -144,6 +144,54 @@ class ActionResponse(BaseModel):
     message: str
 
 
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str = Field(min_length=20, max_length=300)
+    auth: str = Field(min_length=8, max_length=200)
+
+
+class PushSubscriptionCreate(BaseModel):
+    endpoint: str = Field(min_length=20, max_length=1200)
+    keys: PushSubscriptionKeys
+    device_name: str = Field(default="瀏覽器裝置", min_length=1, max_length=100)
+    user_agent: str = Field(default="", max_length=600)
+
+    @field_validator("endpoint", "device_name", "user_agent")
+    @classmethod
+    def strip_push_text(cls, value: str) -> str:
+        return value.strip()
+
+
+class PushSubscriptionRemove(BaseModel):
+    endpoint: str = Field(min_length=20, max_length=1200)
+
+
+class PushSubscriptionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    device_name: str
+    user_agent: str
+    enabled: bool
+    failure_count: int
+    last_success_at: datetime | None
+    last_failure_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class PushStatusRead(BaseModel):
+    configured: bool
+    public_key: str | None
+    subscription_count: int
+    enabled_subscription_count: int
+
+
+class PushActionResponse(ActionResponse):
+    delivered: int = 0
+    disabled: int = 0
+    failed: int = 0
+
+
 class BoardOptionRead(BaseModel):
     board: str
     category: str
