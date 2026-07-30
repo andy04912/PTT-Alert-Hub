@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     bootstrap_admin_password: str = Field(default="change-me-now", validation_alias=AliasChoices("ADMIN_PASSWORD"))
     bootstrap_admin_display_name: str = Field(default="系統管理員", validation_alias=AliasChoices("ADMIN_DISPLAY_NAME"))
     jwt_secret: str = "replace-with-a-long-random-secret"
-    jwt_expire_minutes: int = 1440
+    jwt_expire_minutes: int = Field(default=1440, ge=1)
+    jwt_remember_expire_minutes: int = Field(default=43200, ge=1)
 
     database_url: str = "sqlite:///./data/ptt_alert_hub.db"
 

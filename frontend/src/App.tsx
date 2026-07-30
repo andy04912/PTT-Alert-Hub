@@ -38,8 +38,8 @@ export default function App() {
     return () => window.removeEventListener('auth-expired', handleExpired);
   }, []);
 
-  const handleAuthenticated = (response: LoginResponse) => {
-    setStoredToken(response.access_token);
+  const handleAuthenticated = (response: LoginResponse, rememberMe = true) => {
+    setStoredToken(response.access_token, rememberMe);
     setUser(response.user);
     setLoading(false);
   };

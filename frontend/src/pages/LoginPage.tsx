@@ -7,12 +7,13 @@ import type { LoginResponse } from '../types';
 import { getErrorMessage } from '../utils';
 
 interface LoginPageProps {
-  onAuthenticated: (response: LoginResponse) => void;
+  onAuthenticated: (response: LoginResponse, rememberMe: boolean) => void;
 }
 
 export function LoginPage({ onAuthenticated }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,7 +23,7 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
     setError('');
 
     try {
-      onAuthenticated(await api.login(email, password));
+      onAuthenticated(await api.login(email, password, rememberMe), rememberMe);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -72,6 +73,17 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
               autoComplete="current-password"
               required
             />
+          </label>
+          <label className="c-switch-row">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+            />
+            <span>
+              <strong>記住我</strong>
+              <small>在這台裝置保持登入 30 天。</small>
+            </span>
           </label>
           <button className="c-button c-button--primary c-button--full" disabled={loading}>
             {loading ? '登入中…' : '登入'}
