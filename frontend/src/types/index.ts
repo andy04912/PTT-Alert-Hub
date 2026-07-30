@@ -41,6 +41,7 @@ export interface ArticleMatch {
   published_at: string | null;
   matched_at: string;
   notified_at: string | null;
+  push_notified_at: string | null;
 }
 
 export interface CrawlRun {
