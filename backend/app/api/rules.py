@@ -28,6 +28,15 @@ def _get_owned_rule(db: DbSession, user_id: int, rule_id: int) -> Rule:
     return rule
 
 
+def _rule_payload_data(payload: RuleCreate | RuleUpdate) -> dict:
+    data = payload.model_dump()
+    data["additional_conditions"] = [
+        condition.model_dump(mode="json")
+        for condition in payload.additional_conditions
+    ]
+    return data
+
+
 @router.get("", response_model=list[RuleRead])
 def list_rules(db: DbSession, current_user: CurrentUser) -> list[Rule]:
     return list(
@@ -45,7 +54,7 @@ def create_rule(payload: RuleCreate, db: DbSession, current_user: CurrentUser) -
     if not valid:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=message)
 
-    rule = Rule(user_id=current_user.id, **payload.model_dump())
+    rule = Rule(user_id=current_user.id, **_rule_payload_data(payload))
     db.add(rule)
     db.commit()
     db.refresh(rule)
@@ -66,7 +75,7 @@ def update_rule(
         if not valid:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=message)
 
-    for field, value in payload.model_dump().items():
+    for field, value in _rule_payload_data(payload).items():
         setattr(rule, field, value)
 
     db.add(rule)
