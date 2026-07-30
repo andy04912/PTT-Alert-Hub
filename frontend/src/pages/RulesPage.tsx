@@ -7,11 +7,14 @@ import { PageHeader } from '../components/PageHeader';
 import type { Rule, RulePayload } from '../types';
 import { formatDateTime, getErrorMessage } from '../utils';
 
+const MAX_EXCLUDED_KEYWORDS = 10;
+
 const emptyRule = (): RulePayload => ({
   name: '',
   board: '',
   match_type: 'title_keyword',
   pattern: '',
+  excluded_keywords: [],
   enabled: true,
   case_sensitive: false,
 });
@@ -22,6 +25,7 @@ function toPayload(rule: Rule): RulePayload {
     board: rule.board,
     match_type: rule.match_type,
     pattern: rule.pattern,
+    excluded_keywords: rule.excluded_keywords,
     enabled: rule.enabled,
     case_sensitive: rule.case_sensitive,
   };
@@ -63,12 +67,19 @@ export function RulesPage() {
     setSaving(true);
     setFeedback(null);
 
+    const payload: RulePayload = {
+      ...form,
+      excluded_keywords: form.excluded_keywords
+        .map((keyword) => keyword.trim())
+        .filter(Boolean),
+    };
+
     try {
       if (editingId) {
-        await api.updateRule(editingId, form);
+        await api.updateRule(editingId, payload);
         setFeedback({ type: 'success', message: '規則已更新。' });
       } else {
-        await api.createRule(form);
+        await api.createRule(payload);
         setFeedback({
           type: 'success',
           message: '規則已建立；系統只會通知規則建立後發布的新文章。',
@@ -140,6 +151,32 @@ export function RulesPage() {
     }
   };
 
+  const handleAddExcludedKeyword = () => {
+    if (form.excluded_keywords.length >= MAX_EXCLUDED_KEYWORDS) {
+      return;
+    }
+    setForm({
+      ...form,
+      excluded_keywords: [...form.excluded_keywords, ''],
+    });
+  };
+
+  const handleExcludedKeywordChange = (index: number, value: string) => {
+    setForm({
+      ...form,
+      excluded_keywords: form.excluded_keywords.map((keyword, keywordIndex) =>
+        keywordIndex === index ? value : keyword,
+      ),
+    });
+  };
+
+  const handleRemoveExcludedKeyword = (index: number) => {
+    setForm({
+      ...form,
+      excluded_keywords: form.excluded_keywords.filter((_, keywordIndex) => keywordIndex !== index),
+    });
+  };
+
   if (loading) {
     return <LoadingState />;
   }
@@ -149,7 +186,7 @@ export function RulesPage() {
       <PageHeader
         eyebrow="RULES"
         title="通知規則"
-        description="使用標題關鍵字或作者帳號比對最新文章；同一輪命中會合併成一則通知。"
+        description="先設定主要比對條件，再視需要加入排除條件；同一條規則的所有條件都必須成立。"
       />
 
       {feedback && <Feedback type={feedback.type} message={feedback.message} />}
@@ -172,7 +209,7 @@ export function RulesPage() {
             <span className="c-field__label">規則名稱</span>
             <input
               className="c-input"
-              placeholder="例如：Tech_Job 徵才"
+              placeholder="例如：Mac mini 販賣文章"
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               required
@@ -202,7 +239,7 @@ export function RulesPage() {
           </div>
 
           <label className="c-field">
-            <span className="c-field__label">比對方式</span>
+            <span className="c-field__label">主要條件</span>
             <select
               className="c-select"
               value={form.match_type}
@@ -224,12 +261,60 @@ export function RulesPage() {
             </span>
             <input
               className="c-input"
-              placeholder={form.match_type === 'author' ? 'andy123' : '徵才'}
+              placeholder={form.match_type === 'author' ? 'andy123' : 'Mac mini'}
               value={form.pattern}
               onChange={(event) => setForm({ ...form, pattern: event.target.value })}
               required
             />
           </label>
+
+          <section className="c-rule-builder" aria-labelledby="rule-exclusion-title">
+            <div className="c-rule-builder__header">
+              <div>
+                <span className="c-field__label" id="rule-exclusion-title">額外排除條件</span>
+                <small className="c-field__hint">文章標題只要包含任一排除詞，就不會通知。</small>
+              </div>
+              <button
+                className="c-button c-button--ghost c-button--small"
+                type="button"
+                disabled={form.excluded_keywords.length >= MAX_EXCLUDED_KEYWORDS}
+                onClick={handleAddExcludedKeyword}
+              >
+                ＋ 新增條件
+              </button>
+            </div>
+
+            {form.excluded_keywords.length === 0 ? (
+              <div className="c-rule-builder__empty">目前只有主要條件，尚未加入排除條件。</div>
+            ) : (
+              <div className="c-rule-builder__conditions">
+                {form.excluded_keywords.map((keyword, index) => (
+                  <div className="c-rule-condition" key={`excluded-keyword-${index}`}>
+                    <span className="c-rule-condition__connector">且</span>
+                    <div className="c-rule-condition__body">
+                      <span className="c-rule-condition__operator">標題不包含</span>
+                      <input
+                        className="c-input"
+                        placeholder="例如：徵求"
+                        value={keyword}
+                        onChange={(event) => handleExcludedKeywordChange(index, event.target.value)}
+                        maxLength={200}
+                        required
+                      />
+                    </div>
+                    <button
+                      className="c-button c-button--danger-ghost c-button--small"
+                      type="button"
+                      aria-label={`移除第 ${index + 1} 個排除條件`}
+                      onClick={() => handleRemoveExcludedKeyword(index)}
+                    >
+                      移除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           <div className="c-form__options">
             <label className="c-switch-row">
@@ -251,7 +336,7 @@ export function RulesPage() {
               />
               <span>
                 <strong>區分英文大小寫</strong>
-                <small>中文關鍵字不受影響。</small>
+                <small>主要條件與排除條件都會套用。</small>
               </span>
             </label>
           </div>
@@ -285,6 +370,15 @@ export function RulesPage() {
                       {rule.match_type === 'author' ? '作者等於' : '標題包含'}
                       <strong>「{rule.pattern}」</strong>
                     </p>
+                    {rule.excluded_keywords.length > 0 && (
+                      <div className="c-rule-item__exclusions">
+                        {rule.excluded_keywords.map((keyword) => (
+                          <span className="c-rule-exclusion-tag" key={keyword}>
+                            且標題不包含「{keyword}」
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <small className="c-rule-item__meta">
                       建立於 {formatDateTime(rule.created_at)}
                       {rule.case_sensitive ? '・區分大小寫' : ''}
