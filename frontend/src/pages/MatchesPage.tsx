@@ -69,7 +69,18 @@ export function MatchesPage() {
                     </td>
                     <td>{match.author}</td>
                     <td>{match.rule_name}</td>
-                    <td>{match.notified_at ? '已通知' : '等待 PWA 推播'}</td>
+                    <td>
+                      {match.push_notified_at ? (
+                        <span
+                          className="c-status c-status--success"
+                          title={`推播時間：${formatDateTime(match.push_notified_at)}`}
+                        >
+                          PWA 已推播
+                        </span>
+                      ) : (
+                        <span className="c-status c-status--running">等待 PWA 推播</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
