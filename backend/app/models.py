@@ -18,6 +18,11 @@ class RuleMatchType(str, enum.Enum):
     AUTHOR = "author"
 
 
+class RuleConditionOperator(str, enum.Enum):
+    TITLE_CONTAINS = "title_contains"
+    TITLE_NOT_CONTAINS = "title_not_contains"
+
+
 class CrawlRunStatus(str, enum.Enum):
     RUNNING = "running"
     SUCCESS = "success"
@@ -47,7 +52,7 @@ class Rule(Base):
     board: Mapped[str] = mapped_column(String(60), index=True)
     match_type: Mapped[RuleMatchType] = mapped_column(Enum(RuleMatchType))
     pattern: Mapped[str] = mapped_column(String(200))
-    excluded_keywords: Mapped[list[str]] = mapped_column(JSON, default=list)
+    additional_conditions: Mapped[list[dict[str, str]]] = mapped_column(JSON, default=list)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     case_sensitive: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
