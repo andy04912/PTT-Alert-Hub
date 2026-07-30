@@ -1,16 +1,23 @@
 from fastapi import APIRouter, HTTPException, status
 
+from app.core.config import get_settings
 from app.core.security import create_access_token
 from app.dependencies import CurrentUser, DbSession
 from app.schemas import LoginRequest, RegisterRequest, TokenResponse, UserRead
 from app.services.account_service import authenticate_user, create_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+settings = get_settings()
 
 
-def _build_token_response(user) -> TokenResponse:
+def _build_token_response(user, *, remember_me: bool = False) -> TokenResponse:
+    expires_minutes = (
+        settings.jwt_remember_expire_minutes
+        if remember_me
+        else settings.jwt_expire_minutes
+    )
     return TokenResponse(
-        access_token=create_access_token(user.id),
+        access_token=create_access_token(user.id, expires_minutes=expires_minutes),
         user=UserRead.model_validate(user),
     )
 
@@ -40,7 +47,7 @@ def login(payload: LoginRequest, db: DbSession) -> TokenResponse:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email 或密碼錯誤",
         )
-    return _build_token_response(user)
+    return _build_token_response(user, remember_me=payload.remember_me)
 
 
 @router.get("/me", response_model=UserRead)
