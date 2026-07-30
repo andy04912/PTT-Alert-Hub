@@ -37,3 +37,33 @@ def test_author_exact_match_is_case_insensitive_by_default() -> None:
         case_sensitive=False,
     )
     assert article_matches_rule(make_article("[閒聊] 台中天氣", "andy123"), rule)
+
+
+def test_title_keyword_match_rejects_excluded_keyword() -> None:
+    rule = Rule(
+        name="Mac mini 販賣",
+        board="MacShop",
+        match_type=RuleMatchType.TITLE_KEYWORD,
+        pattern="Mac mini",
+        excluded_keywords=["徵求", "收購"],
+        enabled=True,
+        case_sensitive=False,
+    )
+
+    assert article_matches_rule(make_article("[販售] M4 Mac mini", "seller"), rule)
+    assert not article_matches_rule(make_article("[徵求] M4 Mac mini", "buyer"), rule)
+
+
+def test_author_exact_match_can_also_reject_title_keyword() -> None:
+    rule = Rule(
+        name="指定賣家文章",
+        board="MacShop",
+        match_type=RuleMatchType.AUTHOR,
+        pattern="Brady",
+        excluded_keywords=["已售出"],
+        enabled=True,
+        case_sensitive=False,
+    )
+
+    assert article_matches_rule(make_article("[販售] Mac mini", "brady"), rule)
+    assert not article_matches_rule(make_article("[販售] Mac mini 已售出", "BRADY"), rule)
