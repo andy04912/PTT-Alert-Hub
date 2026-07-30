@@ -21,6 +21,7 @@ class ArticleMatchRead(BaseModel):
     published_at: datetime | None
     matched_at: datetime
     notified_at: datetime | None
+    push_notified_at: datetime | None
 
 
 @router.get("", response_model=list[ArticleMatchRead])
@@ -50,6 +51,7 @@ def list_matches(
             published_at=article.published_at,
             matched_at=article_match.matched_at,
             notified_at=article_match.notified_at,
+            push_notified_at=article_match.push_notified_at,
         )
         for article_match, rule, article in rows
     ]
