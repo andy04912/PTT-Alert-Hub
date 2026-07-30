@@ -1,0 +1,136 @@
+.c-rule-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.c-rule-builder__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.c-rule-builder__header .c-field__hint {
+  display: block;
+  margin-top: 4px;
+}
+
+.c-rule-builder__empty {
+  padding: 13px;
+  border: 1px dashed #d5dae5;
+  border-radius: 10px;
+  color: var(--color-text-muted);
+  background: #ffffff;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.c-rule-builder__conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.c-rule-condition {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.c-rule-condition__connector {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 999px;
+  color: #4c4eb7;
+  background: #eeeefe;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.c-rule-condition__body {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.42fr) minmax(0, 1fr);
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid #d9deea;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.c-rule-condition__body .c-input,
+.c-rule-condition__body .c-select {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.c-rule-condition__select {
+  border-right: 1px solid #e4e7ef !important;
+  color: #636b7d;
+  background: #f5f6f9;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.c-rule-condition__body:focus-within {
+  border-color: #9293f2;
+  box-shadow: 0 0 0 4px rgba(91, 92, 226, 0.1);
+}
+
+.c-rule-item__conditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.c-rule-condition-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: #356f4d;
+  background: #e9f7ef;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.c-rule-condition-tag--negative {
+  color: #9b3143;
+  background: #fdecef;
+}
+
+@media (max-width: 640px) {
+  .c-rule-builder__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .c-rule-condition {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .c-rule-condition > .c-button {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .c-rule-condition__body {
+    grid-template-columns: 1fr;
+  }
+
+  .c-rule-condition__select {
+    border-right: 0 !important;
+    border-bottom: 1px solid #e4e7ef !important;
+  }
+}

@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.core.boards import normalize_board_name
-from app.models import CrawlRunStatus, RuleMatchType
+from app.models import CrawlRunStatus, RuleConditionOperator, RuleMatchType
 
 
 class UserRead(BaseModel):
@@ -42,11 +42,25 @@ class TokenResponse(BaseModel):
     user: UserRead
 
 
+class RuleCondition(BaseModel):
+    operator: RuleConditionOperator
+    pattern: str = Field(min_length=1, max_length=200)
+
+    @field_validator("pattern")
+    @classmethod
+    def strip_pattern(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("條件關鍵字不可為空白")
+        return value
+
+
 class RuleBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     board: str = Field(min_length=1, max_length=60)
     match_type: RuleMatchType
     pattern: str = Field(min_length=1, max_length=200)
+    additional_conditions: list[RuleCondition] = Field(default_factory=list, max_length=10)
     enabled: bool = True
     case_sensitive: bool = False
 
@@ -57,6 +71,24 @@ class RuleBase(BaseModel):
         if not value:
             raise ValueError("不可為空白")
         return value
+
+    @field_validator("additional_conditions")
+    @classmethod
+    def normalize_additional_conditions(
+        cls,
+        values: list[RuleCondition],
+    ) -> list[RuleCondition]:
+        normalized: list[RuleCondition] = []
+        seen: set[tuple[RuleConditionOperator, str]] = set()
+
+        for condition in values:
+            dedupe_key = (condition.operator, condition.pattern.casefold())
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            normalized.append(condition)
+
+        return normalized
 
     @field_validator("board")
     @classmethod

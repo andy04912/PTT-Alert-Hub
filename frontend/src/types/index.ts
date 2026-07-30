@@ -1,4 +1,5 @@
 export type RuleMatchType = 'title_keyword' | 'author';
+export type RuleConditionOperator = 'title_contains' | 'title_not_contains';
 export type CrawlRunStatus = 'running' | 'success' | 'failed' | 'skipped';
 
 export interface User {
@@ -9,12 +10,18 @@ export interface User {
   created_at: string;
 }
 
+export interface RuleCondition {
+  operator: RuleConditionOperator;
+  pattern: string;
+}
+
 export interface Rule {
   id: number;
   name: string;
   board: string;
   match_type: RuleMatchType;
   pattern: string;
+  additional_conditions: RuleCondition[];
   enabled: boolean;
   case_sensitive: boolean;
   created_at: string;

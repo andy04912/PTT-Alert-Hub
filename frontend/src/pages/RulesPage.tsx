@@ -4,14 +4,17 @@ import { api } from '../api/client';
 import { BoardPicker } from '../components/BoardPicker';
 import { EmptyState, Feedback, LoadingState } from '../components/Feedback';
 import { PageHeader } from '../components/PageHeader';
-import type { Rule, RulePayload } from '../types';
+import type { Rule, RuleConditionOperator, RulePayload } from '../types';
 import { formatDateTime, getErrorMessage } from '../utils';
+
+const MAX_ADDITIONAL_CONDITIONS = 10;
 
 const emptyRule = (): RulePayload => ({
   name: '',
   board: '',
   match_type: 'title_keyword',
   pattern: '',
+  additional_conditions: [],
   enabled: true,
   case_sensitive: false,
 });
@@ -22,9 +25,14 @@ function toPayload(rule: Rule): RulePayload {
     board: rule.board,
     match_type: rule.match_type,
     pattern: rule.pattern,
+    additional_conditions: rule.additional_conditions,
     enabled: rule.enabled,
     case_sensitive: rule.case_sensitive,
   };
+}
+
+function getConditionLabel(operator: RuleConditionOperator): string {
+  return operator === 'title_contains' ? '標題包含' : '標題不包含';
 }
 
 export function RulesPage() {
@@ -63,12 +71,22 @@ export function RulesPage() {
     setSaving(true);
     setFeedback(null);
 
+    const payload: RulePayload = {
+      ...form,
+      additional_conditions: form.additional_conditions
+        .map((condition) => ({
+          ...condition,
+          pattern: condition.pattern.trim(),
+        }))
+        .filter((condition) => condition.pattern.length > 0),
+    };
+
     try {
       if (editingId) {
-        await api.updateRule(editingId, form);
+        await api.updateRule(editingId, payload);
         setFeedback({ type: 'success', message: '規則已更新。' });
       } else {
-        await api.createRule(form);
+        await api.createRule(payload);
         setFeedback({
           type: 'success',
           message: '規則已建立；系統只會通知規則建立後發布的新文章。',
@@ -140,6 +158,49 @@ export function RulesPage() {
     }
   };
 
+  const handleAddCondition = () => {
+    if (form.additional_conditions.length >= MAX_ADDITIONAL_CONDITIONS) {
+      return;
+    }
+    setForm({
+      ...form,
+      additional_conditions: [
+        ...form.additional_conditions,
+        { operator: 'title_contains', pattern: '' },
+      ],
+    });
+  };
+
+  const handleConditionOperatorChange = (
+    index: number,
+    operator: RuleConditionOperator,
+  ) => {
+    setForm({
+      ...form,
+      additional_conditions: form.additional_conditions.map((condition, conditionIndex) =>
+        conditionIndex === index ? { ...condition, operator } : condition,
+      ),
+    });
+  };
+
+  const handleConditionPatternChange = (index: number, pattern: string) => {
+    setForm({
+      ...form,
+      additional_conditions: form.additional_conditions.map((condition, conditionIndex) =>
+        conditionIndex === index ? { ...condition, pattern } : condition,
+      ),
+    });
+  };
+
+  const handleRemoveCondition = (index: number) => {
+    setForm({
+      ...form,
+      additional_conditions: form.additional_conditions.filter(
+        (_, conditionIndex) => conditionIndex !== index,
+      ),
+    });
+  };
+
   if (loading) {
     return <LoadingState />;
   }
@@ -149,7 +210,7 @@ export function RulesPage() {
       <PageHeader
         eyebrow="RULES"
         title="通知規則"
-        description="使用標題關鍵字或作者帳號比對最新文章；同一輪命中會合併成一則通知。"
+        description="先設定主要條件，再用「且」加入更多包含或不包含條件；同一條規則的所有條件都必須成立。"
       />
 
       {feedback && <Feedback type={feedback.type} message={feedback.message} />}
@@ -172,7 +233,7 @@ export function RulesPage() {
             <span className="c-field__label">規則名稱</span>
             <input
               className="c-input"
-              placeholder="例如：Tech_Job 徵才"
+              placeholder="例如：Mac mini M3 販賣文章"
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               required
@@ -202,7 +263,7 @@ export function RulesPage() {
           </div>
 
           <label className="c-field">
-            <span className="c-field__label">比對方式</span>
+            <span className="c-field__label">主要條件</span>
             <select
               className="c-select"
               value={form.match_type}
@@ -224,12 +285,73 @@ export function RulesPage() {
             </span>
             <input
               className="c-input"
-              placeholder={form.match_type === 'author' ? 'andy123' : '徵才'}
+              placeholder={form.match_type === 'author' ? 'andy123' : 'Mac mini'}
               value={form.pattern}
               onChange={(event) => setForm({ ...form, pattern: event.target.value })}
               required
             />
           </label>
+
+          <section className="c-rule-builder" aria-labelledby="rule-condition-title">
+            <div className="c-rule-builder__header">
+              <div>
+                <span className="c-field__label" id="rule-condition-title">額外條件</span>
+                <small className="c-field__hint">可加入標題包含或標題不包含，所有條件都使用「且」串接。</small>
+              </div>
+              <button
+                className="c-button c-button--ghost c-button--small"
+                type="button"
+                disabled={form.additional_conditions.length >= MAX_ADDITIONAL_CONDITIONS}
+                onClick={handleAddCondition}
+              >
+                ＋ 新增條件
+              </button>
+            </div>
+
+            {form.additional_conditions.length === 0 ? (
+              <div className="c-rule-builder__empty">目前只有主要條件。需要更精準時，可加入其他包含或排除條件。</div>
+            ) : (
+              <div className="c-rule-builder__conditions">
+                {form.additional_conditions.map((condition, index) => (
+                  <div className="c-rule-condition" key={`additional-condition-${index}`}>
+                    <span className="c-rule-condition__connector">且</span>
+                    <div className="c-rule-condition__body">
+                      <select
+                        className="c-select c-rule-condition__select"
+                        value={condition.operator}
+                        aria-label={`第 ${index + 1} 個條件的比對方式`}
+                        onChange={(event) =>
+                          handleConditionOperatorChange(
+                            index,
+                            event.target.value as RuleConditionOperator,
+                          )
+                        }
+                      >
+                        <option value="title_contains">標題包含</option>
+                        <option value="title_not_contains">標題不包含</option>
+                      </select>
+                      <input
+                        className="c-input"
+                        placeholder={condition.operator === 'title_contains' ? '例如：M3' : '例如：徵求'}
+                        value={condition.pattern}
+                        onChange={(event) => handleConditionPatternChange(index, event.target.value)}
+                        maxLength={200}
+                        required
+                      />
+                    </div>
+                    <button
+                      className="c-button c-button--danger-ghost c-button--small"
+                      type="button"
+                      aria-label={`移除第 ${index + 1} 個額外條件`}
+                      onClick={() => handleRemoveCondition(index)}
+                    >
+                      移除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           <div className="c-form__options">
             <label className="c-switch-row">
@@ -251,7 +373,7 @@ export function RulesPage() {
               />
               <span>
                 <strong>區分英文大小寫</strong>
-                <small>中文關鍵字不受影響。</small>
+                <small>主要條件與所有額外條件都會套用。</small>
               </span>
             </label>
           </div>
@@ -285,6 +407,18 @@ export function RulesPage() {
                       {rule.match_type === 'author' ? '作者等於' : '標題包含'}
                       <strong>「{rule.pattern}」</strong>
                     </p>
+                    {rule.additional_conditions.length > 0 && (
+                      <div className="c-rule-item__conditions">
+                        {rule.additional_conditions.map((condition, index) => (
+                          <span
+                            className={`c-rule-condition-tag ${condition.operator === 'title_not_contains' ? 'c-rule-condition-tag--negative' : ''}`}
+                            key={`${condition.operator}-${condition.pattern}-${index}`}
+                          >
+                            且{getConditionLabel(condition.operator)}「{condition.pattern}」
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <small className="c-rule-item__meta">
                       建立於 {formatDateTime(rule.created_at)}
                       {rule.case_sensitive ? '・區分大小寫' : ''}
