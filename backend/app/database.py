@@ -38,6 +38,18 @@ def _ensure_account_columns(connection: Connection) -> None:
         rule_columns = {column["name"] for column in inspector.get_columns("rules")}
         if "user_id" not in rule_columns:
             connection.execute(text("ALTER TABLE rules ADD COLUMN user_id INTEGER"))
+        if "excluded_keywords" not in rule_columns:
+            excluded_keywords_type = (
+                "JSON NOT NULL DEFAULT '[]'::json"
+                if connection.dialect.name == "postgresql"
+                else "JSON NOT NULL DEFAULT '[]'"
+            )
+            connection.execute(
+                text(
+                    "ALTER TABLE rules "
+                    f"ADD COLUMN excluded_keywords {excluded_keywords_type}"
+                )
+            )
         connection.execute(text("CREATE INDEX IF NOT EXISTS ix_rules_user_id ON rules (user_id)"))
 
     if "article_matches" in table_names:
