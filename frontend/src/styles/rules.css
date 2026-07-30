@@ -58,7 +58,7 @@
 
 .c-rule-condition__body {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(130px, 0.42fr) minmax(0, 1fr);
   align-items: center;
   overflow: hidden;
   border: 1px solid #d9deea;
@@ -66,23 +66,19 @@
   background: #ffffff;
 }
 
-.c-rule-condition__operator {
-  align-self: stretch;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 12px;
-  border-right: 1px solid #e4e7ef;
+.c-rule-condition__body .c-input,
+.c-rule-condition__body .c-select {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.c-rule-condition__select {
+  border-right: 1px solid #e4e7ef !important;
   color: #636b7d;
   background: #f5f6f9;
   font-size: 11px;
   font-weight: 750;
-  white-space: nowrap;
-}
-
-.c-rule-condition__body .c-input {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
 }
 
 .c-rule-condition__body:focus-within {
@@ -90,23 +86,28 @@
   box-shadow: 0 0 0 4px rgba(91, 92, 226, 0.1);
 }
 
-.c-rule-item__exclusions {
+.c-rule-item__conditions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
 }
 
-.c-rule-exclusion-tag {
+.c-rule-condition-tag {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
   padding: 0 9px;
   border-radius: 999px;
-  color: #9b3143;
-  background: #fdecef;
+  color: #356f4d;
+  background: #e9f7ef;
   font-size: 10px;
   font-weight: 750;
+}
+
+.c-rule-condition-tag--negative {
+  color: #9b3143;
+  background: #fdecef;
 }
 
 @media (max-width: 640px) {
@@ -128,9 +129,8 @@
     grid-template-columns: 1fr;
   }
 
-  .c-rule-condition__operator {
-    min-height: 32px;
-    border-right: 0;
-    border-bottom: 1px solid #e4e7ef;
+  .c-rule-condition__select {
+    border-right: 0 !important;
+    border-bottom: 1px solid #e4e7ef !important;
   }
 }
