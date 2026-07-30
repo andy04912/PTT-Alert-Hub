@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.core.boards import normalize_board_name
-from app.models import CrawlRunStatus, RuleMatchType
+from app.models import CrawlRunStatus, RuleConditionOperator, RuleMatchType
 
 
 class UserRead(BaseModel):
@@ -42,12 +42,25 @@ class TokenResponse(BaseModel):
     user: UserRead
 
 
+class RuleCondition(BaseModel):
+    operator: RuleConditionOperator
+    pattern: str = Field(min_length=1, max_length=200)
+
+    @field_validator("pattern")
+    @classmethod
+    def strip_pattern(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("條件關鍵字不可為空白")
+        return value
+
+
 class RuleBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     board: str = Field(min_length=1, max_length=60)
     match_type: RuleMatchType
     pattern: str = Field(min_length=1, max_length=200)
-    excluded_keywords: list[str] = Field(default_factory=list, max_length=10)
+    additional_conditions: list[RuleCondition] = Field(default_factory=list, max_length=10)
     enabled: bool = True
     case_sensitive: bool = False
 
@@ -59,24 +72,21 @@ class RuleBase(BaseModel):
             raise ValueError("不可為空白")
         return value
 
-    @field_validator("excluded_keywords")
+    @field_validator("additional_conditions")
     @classmethod
-    def normalize_excluded_keywords(cls, values: list[str]) -> list[str]:
-        normalized: list[str] = []
-        seen: set[str] = set()
+    def normalize_additional_conditions(
+        cls,
+        values: list[RuleCondition],
+    ) -> list[RuleCondition]:
+        normalized: list[RuleCondition] = []
+        seen: set[tuple[RuleConditionOperator, str]] = set()
 
-        for value in values:
-            keyword = value.strip()
-            if not keyword:
-                continue
-            if len(keyword) > 200:
-                raise ValueError("排除關鍵字不可超過 200 個字元")
-
-            dedupe_key = keyword.casefold()
+        for condition in values:
+            dedupe_key = (condition.operator, condition.pattern.casefold())
             if dedupe_key in seen:
                 continue
             seen.add(dedupe_key)
-            normalized.append(keyword)
+            normalized.append(condition)
 
         return normalized
 
