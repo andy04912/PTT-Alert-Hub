@@ -11,12 +11,16 @@ settings = get_settings()
 bearer_scheme = HTTPBearer(auto_error=True)
 
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: int, *, expires_minutes: int | None = None) -> str:
+    token_expire_minutes = expires_minutes if expires_minutes is not None else settings.jwt_expire_minutes
+    if token_expire_minutes <= 0:
+        raise ValueError("Token 有效分鐘數必須大於 0")
+
     now = datetime.now(timezone.utc)
     payload: dict[str, Any] = {
         "sub": str(user_id),
         "iat": now,
-        "exp": now + timedelta(minutes=settings.jwt_expire_minutes),
+        "exp": now + timedelta(minutes=token_expire_minutes),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
