@@ -4,17 +4,17 @@ import { api } from '../api/client';
 import { BoardPicker } from '../components/BoardPicker';
 import { EmptyState, Feedback, LoadingState } from '../components/Feedback';
 import { PageHeader } from '../components/PageHeader';
-import type { Rule, RulePayload } from '../types';
+import type { Rule, RuleConditionOperator, RulePayload } from '../types';
 import { formatDateTime, getErrorMessage } from '../utils';
 
-const MAX_EXCLUDED_KEYWORDS = 10;
+const MAX_ADDITIONAL_CONDITIONS = 10;
 
 const emptyRule = (): RulePayload => ({
   name: '',
   board: '',
   match_type: 'title_keyword',
   pattern: '',
-  excluded_keywords: [],
+  additional_conditions: [],
   enabled: true,
   case_sensitive: false,
 });
@@ -25,10 +25,14 @@ function toPayload(rule: Rule): RulePayload {
     board: rule.board,
     match_type: rule.match_type,
     pattern: rule.pattern,
-    excluded_keywords: rule.excluded_keywords,
+    additional_conditions: rule.additional_conditions,
     enabled: rule.enabled,
     case_sensitive: rule.case_sensitive,
   };
+}
+
+function getConditionLabel(operator: RuleConditionOperator): string {
+  return operator === 'title_contains' ? '標題包含' : '標題不包含';
 }
 
 export function RulesPage() {
@@ -69,9 +73,12 @@ export function RulesPage() {
 
     const payload: RulePayload = {
       ...form,
-      excluded_keywords: form.excluded_keywords
-        .map((keyword) => keyword.trim())
-        .filter(Boolean),
+      additional_conditions: form.additional_conditions
+        .map((condition) => ({
+          ...condition,
+          pattern: condition.pattern.trim(),
+        }))
+        .filter((condition) => condition.pattern.length > 0),
     };
 
     try {
@@ -151,29 +158,46 @@ export function RulesPage() {
     }
   };
 
-  const handleAddExcludedKeyword = () => {
-    if (form.excluded_keywords.length >= MAX_EXCLUDED_KEYWORDS) {
+  const handleAddCondition = () => {
+    if (form.additional_conditions.length >= MAX_ADDITIONAL_CONDITIONS) {
       return;
     }
     setForm({
       ...form,
-      excluded_keywords: [...form.excluded_keywords, ''],
+      additional_conditions: [
+        ...form.additional_conditions,
+        { operator: 'title_contains', pattern: '' },
+      ],
     });
   };
 
-  const handleExcludedKeywordChange = (index: number, value: string) => {
+  const handleConditionOperatorChange = (
+    index: number,
+    operator: RuleConditionOperator,
+  ) => {
     setForm({
       ...form,
-      excluded_keywords: form.excluded_keywords.map((keyword, keywordIndex) =>
-        keywordIndex === index ? value : keyword,
+      additional_conditions: form.additional_conditions.map((condition, conditionIndex) =>
+        conditionIndex === index ? { ...condition, operator } : condition,
       ),
     });
   };
 
-  const handleRemoveExcludedKeyword = (index: number) => {
+  const handleConditionPatternChange = (index: number, pattern: string) => {
     setForm({
       ...form,
-      excluded_keywords: form.excluded_keywords.filter((_, keywordIndex) => keywordIndex !== index),
+      additional_conditions: form.additional_conditions.map((condition, conditionIndex) =>
+        conditionIndex === index ? { ...condition, pattern } : condition,
+      ),
+    });
+  };
+
+  const handleRemoveCondition = (index: number) => {
+    setForm({
+      ...form,
+      additional_conditions: form.additional_conditions.filter(
+        (_, conditionIndex) => conditionIndex !== index,
+      ),
     });
   };
 
@@ -186,7 +210,7 @@ export function RulesPage() {
       <PageHeader
         eyebrow="RULES"
         title="通知規則"
-        description="先設定主要比對條件，再視需要加入排除條件；同一條規則的所有條件都必須成立。"
+        description="先設定主要條件，再用「且」加入更多包含或不包含條件；同一條規則的所有條件都必須成立。"
       />
 
       {feedback && <Feedback type={feedback.type} message={feedback.message} />}
@@ -209,7 +233,7 @@ export function RulesPage() {
             <span className="c-field__label">規則名稱</span>
             <input
               className="c-input"
-              placeholder="例如：Mac mini 販賣文章"
+              placeholder="例如：Mac mini M3 販賣文章"
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               required
@@ -268,36 +292,49 @@ export function RulesPage() {
             />
           </label>
 
-          <section className="c-rule-builder" aria-labelledby="rule-exclusion-title">
+          <section className="c-rule-builder" aria-labelledby="rule-condition-title">
             <div className="c-rule-builder__header">
               <div>
-                <span className="c-field__label" id="rule-exclusion-title">額外排除條件</span>
-                <small className="c-field__hint">文章標題只要包含任一排除詞，就不會通知。</small>
+                <span className="c-field__label" id="rule-condition-title">額外條件</span>
+                <small className="c-field__hint">可加入標題包含或標題不包含，所有條件都使用「且」串接。</small>
               </div>
               <button
                 className="c-button c-button--ghost c-button--small"
                 type="button"
-                disabled={form.excluded_keywords.length >= MAX_EXCLUDED_KEYWORDS}
-                onClick={handleAddExcludedKeyword}
+                disabled={form.additional_conditions.length >= MAX_ADDITIONAL_CONDITIONS}
+                onClick={handleAddCondition}
               >
                 ＋ 新增條件
               </button>
             </div>
 
-            {form.excluded_keywords.length === 0 ? (
-              <div className="c-rule-builder__empty">目前只有主要條件，尚未加入排除條件。</div>
+            {form.additional_conditions.length === 0 ? (
+              <div className="c-rule-builder__empty">目前只有主要條件。需要更精準時，可加入其他包含或排除條件。</div>
             ) : (
               <div className="c-rule-builder__conditions">
-                {form.excluded_keywords.map((keyword, index) => (
-                  <div className="c-rule-condition" key={`excluded-keyword-${index}`}>
+                {form.additional_conditions.map((condition, index) => (
+                  <div className="c-rule-condition" key={`additional-condition-${index}`}>
                     <span className="c-rule-condition__connector">且</span>
                     <div className="c-rule-condition__body">
-                      <span className="c-rule-condition__operator">標題不包含</span>
+                      <select
+                        className="c-select c-rule-condition__select"
+                        value={condition.operator}
+                        aria-label={`第 ${index + 1} 個條件的比對方式`}
+                        onChange={(event) =>
+                          handleConditionOperatorChange(
+                            index,
+                            event.target.value as RuleConditionOperator,
+                          )
+                        }
+                      >
+                        <option value="title_contains">標題包含</option>
+                        <option value="title_not_contains">標題不包含</option>
+                      </select>
                       <input
                         className="c-input"
-                        placeholder="例如：徵求"
-                        value={keyword}
-                        onChange={(event) => handleExcludedKeywordChange(index, event.target.value)}
+                        placeholder={condition.operator === 'title_contains' ? '例如：M3' : '例如：徵求'}
+                        value={condition.pattern}
+                        onChange={(event) => handleConditionPatternChange(index, event.target.value)}
                         maxLength={200}
                         required
                       />
@@ -305,8 +342,8 @@ export function RulesPage() {
                     <button
                       className="c-button c-button--danger-ghost c-button--small"
                       type="button"
-                      aria-label={`移除第 ${index + 1} 個排除條件`}
-                      onClick={() => handleRemoveExcludedKeyword(index)}
+                      aria-label={`移除第 ${index + 1} 個額外條件`}
+                      onClick={() => handleRemoveCondition(index)}
                     >
                       移除
                     </button>
@@ -336,7 +373,7 @@ export function RulesPage() {
               />
               <span>
                 <strong>區分英文大小寫</strong>
-                <small>主要條件與排除條件都會套用。</small>
+                <small>主要條件與所有額外條件都會套用。</small>
               </span>
             </label>
           </div>
@@ -370,11 +407,14 @@ export function RulesPage() {
                       {rule.match_type === 'author' ? '作者等於' : '標題包含'}
                       <strong>「{rule.pattern}」</strong>
                     </p>
-                    {rule.excluded_keywords.length > 0 && (
-                      <div className="c-rule-item__exclusions">
-                        {rule.excluded_keywords.map((keyword) => (
-                          <span className="c-rule-exclusion-tag" key={keyword}>
-                            且標題不包含「{keyword}」
+                    {rule.additional_conditions.length > 0 && (
+                      <div className="c-rule-item__conditions">
+                        {rule.additional_conditions.map((condition, index) => (
+                          <span
+                            className={`c-rule-condition-tag ${condition.operator === 'title_not_contains' ? 'c-rule-condition-tag--negative' : ''}`}
+                            key={`${condition.operator}-${condition.pattern}-${index}`}
+                          >
+                            且{getConditionLabel(condition.operator)}「{condition.pattern}」
                           </span>
                         ))}
                       </div>
