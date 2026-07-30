@@ -15,6 +15,7 @@ export interface Rule {
   board: string;
   match_type: RuleMatchType;
   pattern: string;
+  excluded_keywords: string[];
   enabled: boolean;
   case_sensitive: boolean;
   created_at: string;
