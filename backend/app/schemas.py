@@ -47,6 +47,7 @@ class RuleBase(BaseModel):
     board: str = Field(min_length=1, max_length=60)
     match_type: RuleMatchType
     pattern: str = Field(min_length=1, max_length=200)
+    excluded_keywords: list[str] = Field(default_factory=list, max_length=10)
     enabled: bool = True
     case_sensitive: bool = False
 
@@ -57,6 +58,27 @@ class RuleBase(BaseModel):
         if not value:
             raise ValueError("不可為空白")
         return value
+
+    @field_validator("excluded_keywords")
+    @classmethod
+    def normalize_excluded_keywords(cls, values: list[str]) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+
+        for value in values:
+            keyword = value.strip()
+            if not keyword:
+                continue
+            if len(keyword) > 200:
+                raise ValueError("排除關鍵字不可超過 200 個字元")
+
+            dedupe_key = keyword.casefold()
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            normalized.append(keyword)
+
+        return normalized
 
     @field_validator("board")
     @classmethod
