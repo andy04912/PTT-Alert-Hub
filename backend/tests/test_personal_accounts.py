@@ -1,7 +1,9 @@
+import jwt
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import get_settings
 from app.core.security import create_access_token, decode_access_token
 from app.database import Base
 from app.models import Rule, RuleMatchType
@@ -38,6 +40,13 @@ def test_user_registration_hashes_password_and_authenticates() -> None:
 def test_jwt_subject_is_database_user_id() -> None:
     token = create_access_token(42)
     assert decode_access_token(token) == 42
+
+
+def test_jwt_supports_custom_expiration() -> None:
+    token = create_access_token(42, expires_minutes=60)
+    payload = jwt.decode(token, get_settings().jwt_secret, algorithms=["HS256"])
+
+    assert payload["exp"] - payload["iat"] == 60 * 60
 
 
 def test_rules_can_be_scoped_to_each_user() -> None:
