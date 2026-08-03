@@ -4,6 +4,7 @@ import type {
   AppSettingPayload,
   ArticleMatch,
   BoardCategory,
+  BoardCrawlSnapshot,
   BoardOption,
   BoardValidationResponse,
   CrawlRun,
@@ -116,4 +117,5 @@ export const api = {
 
   runCrawl: () => request<CrawlRun>('/crawl/run', { method: 'POST' }),
   getRuns: (limit = 50) => request<CrawlRun[]>(`/crawl/runs?limit=${limit}`),
+  getLatestCrawlResults: () => request<BoardCrawlSnapshot[]>('/crawl/latest-results'),
 };
