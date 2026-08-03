@@ -8,15 +8,12 @@ import { formatDateTime, getErrorMessage } from '../utils';
 
 const defaultForm: AppSettingPayload = {
   interval_seconds: 30,
-  pages_per_board: 1,
+  pages_per_board: 2,
   notification_enabled: true,
 };
 
 function getMaximumPages(intervalSeconds: number): number {
-  if (intervalSeconds < 60) {
-    return 1;
-  }
-  if (intervalSeconds === 60) {
+  if (intervalSeconds <= 60) {
     return 2;
   }
   return 10;
@@ -140,7 +137,7 @@ export function SettingsPage() {
               required
             />
             <small className="c-field__hint">
-              最低 30 秒。低於 60 秒時每個看板只能掃描最新 1 頁；若上一輪尚未完成，系統會略過重疊執行。
+              最低 30 秒。60 秒以下每個看板最多掃描 2 頁；若上一輪尚未完成，系統會略過重疊執行。
             </small>
           </label>
 
@@ -157,7 +154,7 @@ export function SettingsPage() {
               }
               required
             />
-            <small className="c-field__hint">頁數越多，請求量與執行時間越高。</small>
+            <small className="c-field__hint">30 秒排程可選 1 或 2 頁；頁數越多，請求量與執行時間越高。</small>
           </label>
 
           <label className="c-switch-row c-switch-row--panel">
