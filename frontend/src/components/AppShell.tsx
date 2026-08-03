@@ -13,7 +13,7 @@ const navigationItems = [
   { to: '/rules', label: '通知規則', icon: '⌕', adminOnly: false },
   { to: '/matches', label: '命中紀錄', icon: '✓', adminOnly: false },
   { to: '/push', label: '推播通知', icon: '◉', adminOnly: false },
-  { to: '/runs', label: '爬取紀錄', icon: '↻', adminOnly: true },
+  { to: '/runs', label: '抓取結果', icon: '↻', adminOnly: false },
   { to: '/settings', label: '系統設定', icon: '⚙', adminOnly: true },
 ];
 
