@@ -5,6 +5,7 @@ import { api, clearStoredToken, getStoredToken, setStoredToken } from './api/cli
 import { AppShell } from './components/AppShell';
 import { LoadingState } from './components/Feedback';
 import { PwaManager } from './components/PwaManager';
+import { ViewportManager } from './components/ViewportManager';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { MatchesPage } from './pages/MatchesPage';
@@ -53,6 +54,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ViewportManager />
       <PwaManager />
       {user ? (
         <AppShell user={user} onLogout={handleLogout}>
