@@ -68,7 +68,9 @@ def _ensure_account_columns(connection: Connection) -> None:
                     f"ADD COLUMN push_notified_at {timestamp_type}"
                 )
             )
-        connection.execute(text("CREATE INDEX IF NOT EXISTS ix_article_matches_user_id ON article_matches (user_id)"))
+        connection.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_article_matches_user_id ON article_matches (user_id)")
+        )
         connection.execute(
             text(
                 "CREATE INDEX IF NOT EXISTS ix_article_matches_push_notified_at "
@@ -77,9 +79,46 @@ def _ensure_account_columns(connection: Connection) -> None:
         )
 
 
+def _ensure_scheduler_columns(connection: Connection) -> None:
+    inspector = inspect(connection)
+    table_names = set(inspector.get_table_names())
+
+    if "app_settings" in table_names:
+        setting_columns = {
+            column["name"] for column in inspector.get_columns("app_settings")
+        }
+        if "interval_seconds" not in setting_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE app_settings "
+                    "ADD COLUMN interval_seconds INTEGER NOT NULL DEFAULT 30"
+                )
+            )
+            connection.execute(
+                text(
+                    "UPDATE app_settings "
+                    "SET interval_seconds = 30, pages_per_board = 1 "
+                    "WHERE id = 1"
+                )
+            )
+
+    if "worker_state" in table_names:
+        worker_columns = {
+            column["name"] for column in inspector.get_columns("worker_state")
+        }
+        if "interval_seconds" not in worker_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE worker_state "
+                    "ADD COLUMN interval_seconds INTEGER NOT NULL DEFAULT 30"
+                )
+            )
+
+
 def _initialize_schema(connection: Connection) -> None:
     Base.metadata.create_all(bind=connection)
     _ensure_account_columns(connection)
+    _ensure_scheduler_columns(connection)
 
 
 def initialize_database() -> None:
@@ -90,7 +129,10 @@ def initialize_database() -> None:
 
     advisory_lock_key = 781_046_213
     with engine.connect() as connection:
-        connection.execute(text("SELECT pg_advisory_lock(:lock_key)"), {"lock_key": advisory_lock_key})
+        connection.execute(
+            text("SELECT pg_advisory_lock(:lock_key)"),
+            {"lock_key": advisory_lock_key},
+        )
         try:
             _initialize_schema(connection)
             connection.commit()
@@ -98,7 +140,10 @@ def initialize_database() -> None:
             connection.rollback()
             raise
         finally:
-            connection.execute(text("SELECT pg_advisory_unlock(:lock_key)"), {"lock_key": advisory_lock_key})
+            connection.execute(
+                text("SELECT pg_advisory_unlock(:lock_key)"),
+                {"lock_key": advisory_lock_key},
+            )
             connection.commit()
 
 

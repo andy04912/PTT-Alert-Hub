@@ -13,7 +13,7 @@ notifier = TelegramNotifier()
 
 def to_read_model(app_setting) -> AppSettingRead:
     return AppSettingRead(
-        interval_minutes=app_setting.interval_minutes,
+        interval_seconds=app_setting.interval_seconds,
         pages_per_board=app_setting.pages_per_board,
         notification_enabled=app_setting.notification_enabled,
         telegram_configured=settings.telegram_configured,
@@ -34,7 +34,7 @@ def update_app_settings(
     _admin: AdminUser,
 ) -> AppSettingRead:
     app_setting = get_or_create_app_settings(db)
-    app_setting.interval_minutes = payload.interval_minutes
+    app_setting.interval_seconds = payload.interval_seconds
     app_setting.pages_per_board = payload.pages_per_board
     app_setting.notification_enabled = payload.notification_enabled
     db.add(app_setting)

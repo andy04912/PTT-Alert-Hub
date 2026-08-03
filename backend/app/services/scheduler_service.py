@@ -24,7 +24,7 @@ class SchedulerService:
         self.worker_id = uuid4().hex
         self.scheduler = BackgroundScheduler(timezone=self.settings.timezone)
         self._leader = False
-        self._current_interval_minutes: int | None = None
+        self._current_interval_seconds: int | None = None
 
     @property
     def running(self) -> bool:
@@ -65,41 +65,41 @@ class SchedulerService:
             self._remove_crawl_job()
             return
 
-        interval_minutes = self._get_interval_minutes()
-        self._ensure_crawl_job(interval_minutes)
-        self._write_worker_state(interval_minutes)
+        interval_seconds = self._get_interval_seconds()
+        self._ensure_crawl_job(interval_seconds)
+        self._write_worker_state(interval_seconds)
 
-    def _ensure_crawl_job(self, interval_minutes: int) -> None:
+    def _ensure_crawl_job(self, interval_seconds: int) -> None:
         job = self.scheduler.get_job(CRAWL_JOB_ID)
         if job is None:
             self.scheduler.add_job(
                 crawl_service.run,
-                trigger=IntervalTrigger(minutes=interval_minutes),
+                trigger=IntervalTrigger(seconds=interval_seconds),
                 kwargs={"trigger": "scheduler"},
                 id=CRAWL_JOB_ID,
                 replace_existing=True,
                 coalesce=True,
                 max_instances=1,
-                misfire_grace_time=120,
+                misfire_grace_time=max(30, interval_seconds),
             )
-            self._current_interval_minutes = interval_minutes
+            self._current_interval_seconds = interval_seconds
             return
 
-        if self._current_interval_minutes == interval_minutes:
+        if self._current_interval_seconds == interval_seconds:
             return
 
         self.scheduler.reschedule_job(
             CRAWL_JOB_ID,
-            trigger=IntervalTrigger(minutes=interval_minutes),
+            trigger=IntervalTrigger(seconds=interval_seconds),
         )
-        self._current_interval_minutes = interval_minutes
+        self._current_interval_seconds = interval_seconds
 
     def _remove_crawl_job(self) -> None:
         if self.scheduler.get_job(CRAWL_JOB_ID) is not None:
             self.scheduler.remove_job(CRAWL_JOB_ID)
-        self._current_interval_minutes = None
+        self._current_interval_seconds = None
 
-    def _write_worker_state(self, interval_minutes: int) -> None:
+    def _write_worker_state(self, interval_seconds: int) -> None:
         crawl_job = self.scheduler.get_job(CRAWL_JOB_ID)
         next_run_at = self._to_naive_utc(crawl_job.next_run_time) if crawl_job else None
         now = utc_now()
@@ -115,7 +115,7 @@ class SchedulerService:
                     started_at=now,
                     heartbeat_at=now,
                     next_run_at=next_run_at,
-                    interval_minutes=interval_minutes,
+                    interval_seconds=interval_seconds,
                 )
             else:
                 if worker_state.worker_id != self.worker_id:
@@ -124,7 +124,7 @@ class SchedulerService:
                 worker_state.active = True
                 worker_state.heartbeat_at = now
                 worker_state.next_run_at = next_run_at
-                worker_state.interval_minutes = interval_minutes
+                worker_state.interval_seconds = interval_seconds
 
             db.add(worker_state)
             db.commit()
@@ -146,10 +146,10 @@ class SchedulerService:
             db.close()
 
     @staticmethod
-    def _get_interval_minutes() -> int:
+    def _get_interval_seconds() -> int:
         db = SessionLocal()
         try:
-            return get_or_create_app_settings(db).interval_minutes
+            return get_or_create_app_settings(db).interval_seconds
         finally:
             db.close()
 

@@ -120,7 +120,7 @@ class RuleRead(RuleBase):
 class AppSettingRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    interval_minutes: int
+    interval_seconds: int
     pages_per_board: int
     notification_enabled: bool
     telegram_configured: bool
@@ -129,14 +129,16 @@ class AppSettingRead(BaseModel):
 
 
 class AppSettingUpdate(BaseModel):
-    interval_minutes: int = Field(ge=1, le=1440)
+    interval_seconds: int = Field(ge=30, le=86400)
     pages_per_board: int = Field(ge=1, le=10)
     notification_enabled: bool
 
     @model_validator(mode="after")
     def validate_high_frequency_settings(self) -> "AppSettingUpdate":
-        if self.interval_minutes == 1 and self.pages_per_board > 2:
-            raise ValueError("使用 1 分鐘頻率時，每個看板最多掃描 2 頁")
+        if self.interval_seconds < 60 and self.pages_per_board > 1:
+            raise ValueError("排程低於 60 秒時，每個看板只能掃描 1 頁")
+        if self.interval_seconds == 60 and self.pages_per_board > 2:
+            raise ValueError("使用 60 秒頻率時，每個看板最多掃描 2 頁")
         return self
 
 

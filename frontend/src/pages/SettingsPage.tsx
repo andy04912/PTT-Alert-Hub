@@ -7,10 +7,20 @@ import type { AppSettingPayload } from '../types';
 import { formatDateTime, getErrorMessage } from '../utils';
 
 const defaultForm: AppSettingPayload = {
-  interval_minutes: 10,
+  interval_seconds: 30,
   pages_per_board: 1,
   notification_enabled: true,
 };
+
+function getMaximumPages(intervalSeconds: number): number {
+  if (intervalSeconds < 60) {
+    return 1;
+  }
+  if (intervalSeconds === 60) {
+    return 2;
+  }
+  return 10;
+}
 
 export function SettingsPage() {
   const [form, setForm] = useState<AppSettingPayload>(defaultForm);
@@ -30,7 +40,7 @@ export function SettingsPage() {
       try {
         const setting = await api.getSettings();
         setForm({
-          interval_minutes: setting.interval_minutes,
+          interval_seconds: setting.interval_seconds,
           pages_per_board: setting.pages_per_board,
           notification_enabled: setting.notification_enabled,
         });
@@ -53,8 +63,16 @@ export function SettingsPage() {
     setFeedback(null);
     try {
       const setting = await api.updateSettings(form);
+      setForm({
+        interval_seconds: setting.interval_seconds,
+        pages_per_board: setting.pages_per_board,
+        notification_enabled: setting.notification_enabled,
+      });
       setUpdatedAt(setting.updated_at);
-      setFeedback({ type: 'success', message: '設定已儲存，Crawler Worker 會在約 10 秒內套用新排程。' });
+      setFeedback({
+        type: 'success',
+        message: '設定已儲存，Crawler Worker 會在約 10 秒內套用新排程。',
+      });
     } catch (error) {
       setFeedback({ type: 'error', message: getErrorMessage(error) });
     } finally {
@@ -75,9 +93,20 @@ export function SettingsPage() {
     }
   };
 
+  const handleIntervalChange = (intervalSeconds: number) => {
+    const maximumPages = getMaximumPages(intervalSeconds);
+    setForm({
+      ...form,
+      interval_seconds: intervalSeconds,
+      pages_per_board: Math.min(form.pages_per_board, maximumPages),
+    });
+  };
+
   if (loading) {
     return <LoadingState />;
   }
+
+  const maximumPages = getMaximumPages(form.interval_seconds);
 
   return (
     <div className="p-settings">
@@ -99,19 +128,20 @@ export function SettingsPage() {
           </div>
 
           <label className="c-field">
-            <span className="c-field__label">執行間隔（分鐘）</span>
+            <span className="c-field__label">執行間隔（秒）</span>
             <input
               className="c-input"
               type="number"
-              min={1}
-              max={1440}
-              value={form.interval_minutes}
-              onChange={(event) =>
-                setForm({ ...form, interval_minutes: Number(event.target.value) })
-              }
+              min={30}
+              max={86400}
+              step={10}
+              value={form.interval_seconds}
+              onChange={(event) => handleIntervalChange(Number(event.target.value))}
               required
             />
-            <small className="c-field__hint">最低 1 分鐘；設定為 1 分鐘時，每個看板最多掃描 2 頁，建議只掃最新 1 頁。</small>
+            <small className="c-field__hint">
+              最低 30 秒。低於 60 秒時每個看板只能掃描最新 1 頁；若上一輪尚未完成，系統會略過重疊執行。
+            </small>
           </label>
 
           <label className="c-field">
@@ -120,7 +150,7 @@ export function SettingsPage() {
               className="c-input"
               type="number"
               min={1}
-              max={10}
+              max={maximumPages}
               value={form.pages_per_board}
               onChange={(event) =>
                 setForm({ ...form, pages_per_board: Number(event.target.value) })

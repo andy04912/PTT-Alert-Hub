@@ -63,7 +63,7 @@ class AppSetting(Base):
     __tablename__ = "app_settings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
-    interval_minutes: Mapped[int] = mapped_column(Integer, default=10)
+    interval_seconds: Mapped[int] = mapped_column(Integer, default=30)
     pages_per_board: Mapped[int] = mapped_column(Integer, default=1)
     notification_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
@@ -87,7 +87,7 @@ class WorkerState(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     heartbeat_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
     next_run_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    interval_minutes: Mapped[int] = mapped_column(Integer, default=10)
+    interval_seconds: Mapped[int] = mapped_column(Integer, default=30)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
 
