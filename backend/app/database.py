@@ -95,7 +95,11 @@ def _ensure_scheduler_columns(connection: Connection) -> None:
                 )
             )
             connection.execute(
-                text("UPDATE app_settings SET interval_seconds = 30 WHERE id = 1")
+                text(
+                    "UPDATE app_settings "
+                    "SET interval_seconds = 30, pages_per_board = 1 "
+                    "WHERE id = 1"
+                )
             )
 
     if "worker_state" in table_names:
