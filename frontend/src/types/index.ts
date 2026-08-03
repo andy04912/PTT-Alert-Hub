@@ -57,6 +57,23 @@ export interface CrawlRun {
   error_message: string | null;
 }
 
+export interface CrawlSnapshotArticle {
+  article_key: string;
+  title: string;
+  author: string;
+  url: string;
+  ptt_date: string;
+  published_at: string | null;
+}
+
+export interface BoardCrawlSnapshot {
+  board: string;
+  run_id: number;
+  fetched_at: string;
+  articles_count: number;
+  articles: CrawlSnapshotArticle[];
+}
+
 export interface DashboardStats {
   enabled_rules: number;
   total_rules: number;
