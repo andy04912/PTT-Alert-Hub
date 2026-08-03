@@ -135,10 +135,8 @@ class AppSettingUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_high_frequency_settings(self) -> "AppSettingUpdate":
-        if self.interval_seconds < 60 and self.pages_per_board > 1:
-            raise ValueError("排程低於 60 秒時，每個看板只能掃描 1 頁")
-        if self.interval_seconds == 60 and self.pages_per_board > 2:
-            raise ValueError("使用 60 秒頻率時，每個看板最多掃描 2 頁")
+        if self.interval_seconds <= 60 and self.pages_per_board > 2:
+            raise ValueError("排程為 60 秒以下時，每個看板最多掃描 2 頁")
         return self
 
 

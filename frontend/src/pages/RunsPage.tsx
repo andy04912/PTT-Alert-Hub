@@ -7,22 +7,26 @@ import { StatusBadge } from '../components/StatusBadge';
 import type { BoardCrawlSnapshot, CrawlRun } from '../types';
 import { formatDateTime, getErrorMessage } from '../utils';
 
-export function RunsPage() {
+interface RunsPageProps {
+  isAdmin: boolean;
+}
+
+export function RunsPage({ isAdmin }: RunsPageProps) {
   const [runs, setRuns] = useState<CrawlRun[]>([]);
   const [snapshots, setSnapshots] = useState<BoardCrawlSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadRuns = async () => {
+  const loadResults = async () => {
     setLoading(true);
     setError('');
     try {
-      const [latestRuns, latestSnapshots] = await Promise.all([
-        api.getRuns(),
+      const [latestSnapshots, latestRuns] = await Promise.all([
         api.getLatestCrawlResults(),
+        isAdmin ? api.getRuns() : Promise.resolve([] as CrawlRun[]),
       ]);
-      setRuns(latestRuns);
       setSnapshots(latestSnapshots);
+      setRuns(latestRuns);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -31,17 +35,21 @@ export function RunsPage() {
   };
 
   useEffect(() => {
-    void loadRuns();
-  }, []);
+    void loadResults();
+  }, [isAdmin]);
 
   return (
     <div className="p-runs">
       <PageHeader
-        eyebrow="HISTORY"
-        title="爬取紀錄"
-        description="查看各看板最後一次成功抓取的文章，以及每次排程的掃描數量、命中結果與錯誤。"
+        eyebrow={isAdmin ? 'HISTORY' : 'LATEST RESULTS'}
+        title={isAdmin ? '爬取紀錄' : '抓取結果'}
+        description={
+          isAdmin
+            ? '查看自己追蹤看板的最新文章，以及全站排程的掃描數量、命中結果與錯誤。'
+            : '查看自己已啟用規則所追蹤看板的最後一次成功抓取結果。'
+        }
         actions={
-          <button className="c-button c-button--secondary" type="button" onClick={() => void loadRuns()}>
+          <button className="c-button c-button--secondary" type="button" onClick={() => void loadResults()}>
             重新整理
           </button>
         }
@@ -61,15 +69,15 @@ export function RunsPage() {
               <span className="c-count-pill">{snapshots.length}</span>
             </div>
             <p className="p-runs__snapshot-note">
-              每個看板只保留最後一次成功抓取的快照；下一次成功後會直接覆蓋，不會累積每 30 秒的完整明細。
+              只顯示你目前已啟用規則所追蹤的看板。每個看板只保留最後一次成功抓取的快照，下一次成功後會直接覆蓋。
             </p>
 
             {snapshots.length === 0 ? (
-              <div className="c-empty-state">尚無成功抓取的看板結果。</div>
+              <div className="c-empty-state">目前沒有可顯示的追蹤看板結果。</div>
             ) : (
               <div className="c-crawl-snapshot-list">
-                {snapshots.map((snapshot, index) => (
-                  <details className="c-crawl-snapshot" key={snapshot.board} open={index === 0}>
+                {snapshots.map((snapshot) => (
+                  <details className="c-crawl-snapshot" key={snapshot.board}>
                     <summary className="c-crawl-snapshot__summary">
                       <span className="c-crawl-snapshot__identity">
                         <span className="c-board-tag">{snapshot.board}</span>
@@ -102,45 +110,47 @@ export function RunsPage() {
             )}
           </section>
 
-          <section className="c-card c-table-card p-runs__history">
-            <div className="c-card__header p-runs__history-header">
-              <div>
-                <span className="c-card__eyebrow">RUN HISTORY</span>
-                <h2 className="c-card__title">執行統計</h2>
+          {isAdmin && (
+            <section className="c-card c-table-card p-runs__history">
+              <div className="c-card__header p-runs__history-header">
+                <div>
+                  <span className="c-card__eyebrow">RUN HISTORY</span>
+                  <h2 className="c-card__title">全站執行統計</h2>
+                </div>
               </div>
-            </div>
-            <div className="c-table-wrap">
-              <table className="c-table">
-                <thead>
-                  <tr>
-                    <th>狀態</th>
-                    <th>開始時間</th>
-                    <th>來源</th>
-                    <th>看板</th>
-                    <th>掃描</th>
-                    <th>命中</th>
-                    <th>通知</th>
-                    <th>訊息</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {runs.map((run) => (
-                    <tr key={run.id}>
-                      <td><StatusBadge status={run.status} /></td>
-                      <td>{formatDateTime(run.started_at)}</td>
-                      <td>{run.trigger === 'manual' ? '手動' : '排程'}</td>
-                      <td>{run.boards_count}</td>
-                      <td>{run.articles_scanned}</td>
-                      <td>{run.matches_count}</td>
-                      <td>{run.notification_sent ? '已傳送' : '—'}</td>
-                      <td className="c-table__message">{run.error_message || '—'}</td>
+              <div className="c-table-wrap">
+                <table className="c-table">
+                  <thead>
+                    <tr>
+                      <th>狀態</th>
+                      <th>開始時間</th>
+                      <th>來源</th>
+                      <th>看板</th>
+                      <th>掃描</th>
+                      <th>命中</th>
+                      <th>通知</th>
+                      <th>訊息</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {runs.length === 0 && <div className="c-empty-state">尚無爬取紀錄。</div>}
-          </section>
+                  </thead>
+                  <tbody>
+                    {runs.map((run) => (
+                      <tr key={run.id}>
+                        <td><StatusBadge status={run.status} /></td>
+                        <td>{formatDateTime(run.started_at)}</td>
+                        <td>{run.trigger === 'manual' ? '手動' : '排程'}</td>
+                        <td>{run.boards_count}</td>
+                        <td>{run.articles_scanned}</td>
+                        <td>{run.matches_count}</td>
+                        <td>{run.notification_sent ? '已傳送' : '—'}</td>
+                        <td className="c-table__message">{run.error_message || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {runs.length === 0 && <div className="c-empty-state">尚無爬取紀錄。</div>}
+            </section>
+          )}
         </>
       )}
     </div>

@@ -6,22 +6,22 @@ from app.database import _ensure_scheduler_columns
 from app.schemas import AppSettingUpdate
 
 
-def test_30_second_interval_accepts_one_page() -> None:
+def test_30_second_interval_accepts_two_pages() -> None:
     setting = AppSettingUpdate(
         interval_seconds=30,
-        pages_per_board=1,
+        pages_per_board=2,
         notification_enabled=True,
     )
 
     assert setting.interval_seconds == 30
-    assert setting.pages_per_board == 1
+    assert setting.pages_per_board == 2
 
 
-def test_30_second_interval_rejects_multiple_pages() -> None:
-    with pytest.raises(ValidationError, match="只能掃描 1 頁"):
+def test_30_second_interval_rejects_more_than_two_pages() -> None:
+    with pytest.raises(ValidationError, match="最多掃描 2 頁"):
         AppSettingUpdate(
             interval_seconds=30,
-            pages_per_board=2,
+            pages_per_board=3,
             notification_enabled=True,
         )
 

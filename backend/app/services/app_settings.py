@@ -9,7 +9,7 @@ def get_or_create_app_settings(db: Session) -> AppSetting:
     if app_setting is not None:
         return app_setting
 
-    app_setting = AppSetting(id=1)
+    app_setting = AppSetting(id=1, interval_seconds=30, pages_per_board=2)
     db.add(app_setting)
     try:
         db.commit()
