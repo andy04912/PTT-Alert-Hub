@@ -12,6 +12,16 @@ const defaultForm: AppSettingPayload = {
   notification_enabled: true,
 };
 
+function getMaximumPages(intervalSeconds: number): number {
+  if (intervalSeconds < 60) {
+    return 1;
+  }
+  if (intervalSeconds === 60) {
+    return 2;
+  }
+  return 10;
+}
+
 export function SettingsPage() {
   const [form, setForm] = useState<AppSettingPayload>(defaultForm);
   const [telegramConfigured, setTelegramConfigured] = useState(false);
@@ -83,9 +93,20 @@ export function SettingsPage() {
     }
   };
 
+  const handleIntervalChange = (intervalSeconds: number) => {
+    const maximumPages = getMaximumPages(intervalSeconds);
+    setForm({
+      ...form,
+      interval_seconds: intervalSeconds,
+      pages_per_board: Math.min(form.pages_per_board, maximumPages),
+    });
+  };
+
   if (loading) {
     return <LoadingState />;
   }
+
+  const maximumPages = getMaximumPages(form.interval_seconds);
 
   return (
     <div className="p-settings">
@@ -115,9 +136,7 @@ export function SettingsPage() {
               max={86400}
               step={10}
               value={form.interval_seconds}
-              onChange={(event) =>
-                setForm({ ...form, interval_seconds: Number(event.target.value) })
-              }
+              onChange={(event) => handleIntervalChange(Number(event.target.value))}
               required
             />
             <small className="c-field__hint">
@@ -131,7 +150,7 @@ export function SettingsPage() {
               className="c-input"
               type="number"
               min={1}
-              max={form.interval_seconds < 60 ? 1 : form.interval_seconds === 60 ? 2 : 10}
+              max={maximumPages}
               value={form.pages_per_board}
               onChange={(event) =>
                 setForm({ ...form, pages_per_board: Number(event.target.value) })
