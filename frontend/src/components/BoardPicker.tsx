@@ -70,19 +70,6 @@ export function BoardPicker({ value, onChange, disabled = false }: BoardPickerPr
     };
   }, [disabled, open, value]);
 
-  const revealPickerOnMobile = () => {
-    setOpen(true);
-
-    if (!window.matchMedia('(max-width: 640px)').matches) {
-      return;
-    }
-
-    // 等待手機鍵盤完成展開，再把輸入區移到畫面上方，保留結果清單的可視空間。
-    window.setTimeout(() => {
-      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 220);
-  };
-
   const selectBoard = (board: string) => {
     onChange(board);
     setOpen(false);
@@ -155,7 +142,7 @@ export function BoardPicker({ value, onChange, disabled = false }: BoardPickerPr
             role="combobox"
             aria-expanded={open}
             aria-controls="board-picker-results"
-            onFocus={revealPickerOnMobile}
+            onFocus={() => setOpen(true)}
             onChange={(event) => {
               onChange(event.target.value);
               setOpen(true);
