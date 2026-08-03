@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Query
 from sqlalchemy import select
 
-from app.dependencies import AdminUser, DbSession
-from app.models import BoardCrawlSnapshot, CrawlRun
+from app.dependencies import AdminUser, CurrentUser, DbSession
+from app.models import BoardCrawlSnapshot, CrawlRun, Rule
 from app.schemas import BoardCrawlSnapshotRead, CrawlRunRead
 from app.services.crawl_service import crawl_service
 
@@ -26,10 +26,25 @@ def list_runs(
 @router.get("/latest-results", response_model=list[BoardCrawlSnapshotRead])
 def list_latest_results(
     db: DbSession,
-    _admin: AdminUser,
+    current_user: CurrentUser,
 ) -> list[BoardCrawlSnapshot]:
+    tracked_boards = list(
+        db.scalars(
+            select(Rule.board)
+            .where(
+                Rule.user_id == current_user.id,
+                Rule.enabled.is_(True),
+            )
+            .distinct()
+        ).all()
+    )
+    if not tracked_boards:
+        return []
+
     return list(
         db.scalars(
-            select(BoardCrawlSnapshot).order_by(BoardCrawlSnapshot.board.asc())
+            select(BoardCrawlSnapshot)
+            .where(BoardCrawlSnapshot.board.in_(tracked_boards))
+            .order_by(BoardCrawlSnapshot.board.asc())
         ).all()
     )
