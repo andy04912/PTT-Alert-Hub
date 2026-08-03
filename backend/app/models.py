@@ -120,6 +120,18 @@ class CrawlRun(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class BoardCrawlSnapshot(Base):
+    __tablename__ = "board_crawl_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    board: Mapped[str] = mapped_column(String(60), unique=True, index=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("crawl_runs.id", ondelete="CASCADE"), index=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
+    articles_count: Mapped[int] = mapped_column(Integer, default=0)
+    articles: Mapped[list[dict[str, object]]] = mapped_column(JSON, default=list)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
+
+
 class ArticleMatch(Base):
     __tablename__ = "article_matches"
     __table_args__ = (UniqueConstraint("rule_id", "article_id", name="uq_rule_article"),)
