@@ -69,7 +69,7 @@ export interface DashboardStats {
 }
 
 export interface AppSetting {
-  interval_minutes: number;
+  interval_seconds: number;
   pages_per_board: number;
   notification_enabled: boolean;
   telegram_configured: boolean;
@@ -78,7 +78,7 @@ export interface AppSetting {
 }
 
 export interface AppSettingPayload {
-  interval_minutes: number;
+  interval_seconds: number;
   pages_per_board: number;
   notification_enabled: boolean;
 }
