@@ -61,7 +61,7 @@ export default function App() {
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/matches" element={<MatchesPage />} />
             <Route path="/push" element={<PushPage />} />
-            {user.is_admin && <Route path="/runs" element={<RunsPage />} />}
+            <Route path="/runs" element={<RunsPage isAdmin={user.is_admin} />} />
             {user.is_admin && <Route path="/settings" element={<SettingsPage />} />}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
