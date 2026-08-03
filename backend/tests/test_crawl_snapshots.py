@@ -4,8 +4,16 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app.api.crawl import list_latest_results
 from app.database import Base
-from app.models import BoardCrawlSnapshot, CrawlRun, CrawlRunStatus
+from app.models import (
+    BoardCrawlSnapshot,
+    CrawlRun,
+    CrawlRunStatus,
+    Rule,
+    RuleMatchType,
+)
+from app.services.account_service import create_user
 from app.services.crawl_service import CrawlService
 from app.services.ptt_crawler import PttArticle
 
@@ -91,3 +99,63 @@ def test_prune_removes_snapshots_for_inactive_boards() -> None:
             ).all()
         )
         assert boards == ["Tech_Job"]
+
+
+def test_latest_results_only_include_current_users_enabled_boards() -> None:
+    engine = create_test_engine()
+
+    with Session(engine) as db:
+        user_a = create_user(
+            db,
+            email="a@example.com",
+            display_name="User A",
+            password="strong-password-123",
+        )
+        user_b = create_user(
+            db,
+            email="b@example.com",
+            display_name="User B",
+            password="strong-password-123",
+        )
+        run = CrawlRun(status=CrawlRunStatus.SUCCESS)
+        db.add(run)
+        db.commit()
+
+        db.add_all(
+            [
+                Rule(
+                    user_id=user_a.id,
+                    name="A active",
+                    board="Tech_Job",
+                    match_type=RuleMatchType.TITLE_KEYWORD,
+                    pattern="Python",
+                    enabled=True,
+                ),
+                Rule(
+                    user_id=user_a.id,
+                    name="A disabled",
+                    board="MacShop",
+                    match_type=RuleMatchType.TITLE_KEYWORD,
+                    pattern="Mac mini",
+                    enabled=False,
+                ),
+                Rule(
+                    user_id=user_b.id,
+                    name="B active",
+                    board="Stock",
+                    match_type=RuleMatchType.TITLE_KEYWORD,
+                    pattern="台積電",
+                    enabled=True,
+                ),
+                BoardCrawlSnapshot(board="Tech_Job", run_id=run.id, articles=[]),
+                BoardCrawlSnapshot(board="MacShop", run_id=run.id, articles=[]),
+                BoardCrawlSnapshot(board="Stock", run_id=run.id, articles=[]),
+            ]
+        )
+        db.commit()
+
+        user_a_results = list_latest_results(db, user_a)
+        user_b_results = list_latest_results(db, user_b)
+
+        assert [snapshot.board for snapshot in user_a_results] == ["Tech_Job"]
+        assert [snapshot.board for snapshot in user_b_results] == ["Stock"]
