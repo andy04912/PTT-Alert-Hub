@@ -4,13 +4,14 @@ import threading
 from collections import defaultdict
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.database import SessionLocal
 from app.models import (
     ArticleMatch,
+    BoardCrawlSnapshot,
     CrawlRun,
     CrawlRunStatus,
     Rule,
@@ -98,6 +99,7 @@ class CrawlService:
         for rule in rules:
             rules_by_board[rule.board].append(rule)
 
+        self._prune_board_snapshots(db, set(rules_by_board))
         run.boards_count = len(rules_by_board)
         new_matched_article_ids: set[int] = set()
         errors: list[str] = []
@@ -111,6 +113,7 @@ class CrawlService:
                 errors.append(f"{board}：{error}")
                 continue
 
+            self._replace_board_snapshot(db, run.id, board, articles)
             run.articles_scanned += len(articles)
             for article in articles:
                 seen_article = db.scalar(
@@ -177,6 +180,49 @@ class CrawlService:
         run.finished_at = utc_now()
         db.add(run)
         db.commit()
+
+    @staticmethod
+    def _replace_board_snapshot(
+        db: Session,
+        run_id: int,
+        board: str,
+        articles: list[PttArticle],
+    ) -> None:
+        serialized_articles = [
+            {
+                "article_key": article.article_key,
+                "title": article.title,
+                "author": article.author,
+                "url": article.url,
+                "ptt_date": article.ptt_date,
+                "published_at": (
+                    article.published_at.isoformat() if article.published_at else None
+                ),
+            }
+            for article in articles
+        ]
+        snapshot = db.scalar(
+            select(BoardCrawlSnapshot).where(BoardCrawlSnapshot.board == board)
+        )
+        if snapshot is None:
+            snapshot = BoardCrawlSnapshot(board=board, run_id=run_id)
+
+        snapshot.run_id = run_id
+        snapshot.fetched_at = utc_now()
+        snapshot.articles_count = len(serialized_articles)
+        snapshot.articles = serialized_articles
+        db.add(snapshot)
+
+    @staticmethod
+    def _prune_board_snapshots(db: Session, active_boards: set[str]) -> None:
+        if active_boards:
+            db.execute(
+                delete(BoardCrawlSnapshot).where(
+                    ~BoardCrawlSnapshot.board.in_(active_boards)
+                )
+            )
+            return
+        db.execute(delete(BoardCrawlSnapshot))
 
     def _send_pending_notification(
         self,
