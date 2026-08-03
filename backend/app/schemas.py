@@ -163,6 +163,25 @@ class CrawlRunRead(BaseModel):
     error_message: str | None
 
 
+class CrawlSnapshotArticleRead(BaseModel):
+    article_key: str
+    title: str
+    author: str
+    url: str
+    ptt_date: str
+    published_at: datetime | None
+
+
+class BoardCrawlSnapshotRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    board: str
+    run_id: int
+    fetched_at: datetime
+    articles_count: int
+    articles: list[CrawlSnapshotArticleRead]
+
+
 class DashboardStats(BaseModel):
     enabled_rules: int
     total_rules: int
